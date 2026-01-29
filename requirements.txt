@@ -1,0 +1,12 @@
+langchain
+langchain-community
+langchain-openai
+langchain-chroma
+dashscope
+fastapi
+uvicorn
+python-dotenv
+chromadb
+pypdf
+unstructured
+ebooklib  # 用于解析 EPUB 文件
