@@ -8,7 +8,10 @@ import os
 load_dotenv()
 
 app = FastAPI(title="AI Agent Knowledge Base API")
-agent_manager = AgentManager()
+
+# 读取配置
+enable_direct_retrieval = os.getenv("ENABLE_DIRECT_RETRIEVAL", "false").lower() == "true"
+agent_manager = AgentManager(enable_direct_retrieval=enable_direct_retrieval)
 
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -28,7 +31,8 @@ async def chat(query: str):
             "query": query,
             "answer": answer,
             "knowledge_base_used": retrieval_info["used_knowledge_base"],
-            "used_direct_retrieval": retrieval_info["used_direct_retrieval"],  # 新增
+            "used_direct_retrieval": retrieval_info["used_direct_retrieval"],
+            "used_few_shot": retrieval_info["used_few_shot"],  # 新增
             "retrieved_docs_count": retrieval_info["retrieved_docs_count"],
             "sources": retrieval_info["sources"],
             "data_source": "本地知识库（直接检索）" if retrieval_info["used_direct_retrieval"] 

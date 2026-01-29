@@ -302,6 +302,11 @@
                                     ⚡ 直接检索（未使用LLM）
                                 </span>
                             ` : ''}
+                            ${data.used_few_shot ? `
+                                <span class="badge info">
+                                    📝 Few-Shot（统一格式）
+                                </span>
+                            ` : ''}
                             ${data.knowledge_base_used && !data.used_direct_retrieval ? `
                                 <span class="badge info">
                                     📄 检索到 ${data.retrieved_docs_count} 个文档片段

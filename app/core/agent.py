@@ -6,15 +6,18 @@ from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 from app.core.rag import RAGManager
 from app.core.keyword_matcher import KeywordMatcher
+from app.core.few_shot_manager import FewShotManager
 from dotenv import load_dotenv
 
 load_dotenv()
 
 class AgentManager:
-    def __init__(self):
+    def __init__(self, enable_few_shot=True, enable_direct_retrieval=False):
         # 获取模型提供商配置
         provider = os.getenv("MODEL_PROVIDER", "aliyun").lower()
         self.provider = provider
+        self.enable_few_shot = enable_few_shot
+        self.enable_direct_retrieval = enable_direct_retrieval  # 新增：是否启用直接检索
         
         # 根据提供商初始化 LLM
         if provider == "groq":
@@ -34,15 +37,23 @@ class AgentManager:
             print(f"✅ 使用阿里云模型: {os.getenv('LLM_MODEL', 'qwen-plus')}")
         
         self.rag = RAGManager()
-        self.keyword_matcher = KeywordMatcher()  # 新增：关键词匹配器
-        self.last_retrieved_docs = []  # 记录最后检索的文档
-        self.used_knowledge_base = False  # 标记是否使用了知识库
-        self.used_direct_retrieval = False  # 标记是否使用了直接检索（不走LLM）
+        self.keyword_matcher = KeywordMatcher()
+        self.few_shot_manager = FewShotManager() if enable_few_shot else None
+        self.last_retrieved_docs = []
+        self.used_knowledge_base = False
+        self.used_direct_retrieval = False
+        self.used_few_shot = False  # 新增：标记是否使用了 Few-Shot
         
         # 打印关键词统计
         stats = self.keyword_matcher.get_statistics()
         print(f"📚 已加载 {stats['总关键词数']} 个关键词")
         print("💡 命中关键词将直接检索，节省 LLM 调用")
+        
+        # 打印 Few-Shot 统计
+        if self.few_shot_manager:
+            few_shot_stats = self.few_shot_manager.get_statistics()
+            print(f"📝 已加载 {few_shot_stats['总示例数']} 个 Few-Shot 示例")
+            print("💡 Few-Shot 将统一回答格式和风格")
 
     def create_agent(self):
         # 1. 创建检索器
@@ -72,6 +83,7 @@ class AgentManager:
         # 重置状态
         self.last_retrieved_docs = []
         self.used_knowledge_base = False
+        self.used_few_shot = False
         
         # 1. 检索相关文档
         retriever = self.rag.get_retriever()
@@ -82,7 +94,13 @@ class AgentManager:
         if docs:
             self.used_knowledge_base = True
             context = "\n\n".join([doc.page_content for doc in docs])
-            prompt = f"""你是一个智能助手。请基于以下知识库内容回答用户的问题。
+            
+            # 使用 Few-Shot（如果启用）
+            if self.few_shot_manager:
+                self.used_few_shot = True
+                prompt = self.few_shot_manager.build_few_shot_prompt(query, context)
+            else:
+                prompt = f"""你是一个智能助手。请基于以下知识库内容回答用户的问题。
 
 知识库内容：
 {context}
@@ -134,38 +152,42 @@ class AgentManager:
         return "\n\n" + "\n\n".join(result_parts)
 
     def run(self, query: str):
-        # 先检查是否命中关键词
-        should_direct, reason = self.keyword_matcher.should_use_direct_retrieval(query)
-        
-        if should_direct:
-            print(f"🎯 {reason}")
-            return self.direct_retrieval(query)
-        else:
-            print(f"🤖 {reason}")
-            # Groq 使用简化的 RAG，阿里云使用 Agent
-            if self.provider == "groq":
-                return self.run_simple_rag(query)
+        # 检查是否启用直接检索
+        if self.enable_direct_retrieval:
+            # 先检查是否命中关键词
+            should_direct, reason = self.keyword_matcher.should_use_direct_retrieval(query)
+            
+            if should_direct:
+                print(f"🎯 {reason}")
+                return self.direct_retrieval(query)
             else:
-                # 重置状态
-                self.last_retrieved_docs = []
-                self.used_knowledge_base = False
-                self.used_direct_retrieval = False
-                
-                graph = self.create_agent()
-                # 调用图，输入消息列表
-                inputs = {"messages": [{"role": "user", "content": query}]}
-                result = graph.invoke(inputs)
-                # 获取最后一条 AI 消息的内容
-                messages = result.get("messages", [])
-                if messages:
-                    return messages[-1].content
-                return "未能生成回复。"
+                print(f"🤖 {reason}")
+        
+        # Groq 使用简化的 RAG，阿里云使用 Agent
+        if self.provider == "groq":
+            return self.run_simple_rag(query)
+        else:
+            # 重置状态
+            self.last_retrieved_docs = []
+            self.used_knowledge_base = False
+            self.used_direct_retrieval = False
+            
+            graph = self.create_agent()
+            # 调用图，输入消息列表
+            inputs = {"messages": [{"role": "user", "content": query}]}
+            result = graph.invoke(inputs)
+            # 获取最后一条 AI 消息的内容
+            messages = result.get("messages", [])
+            if messages:
+                return messages[-1].content
+            return "未能生成回复。"
     
     def get_last_retrieval_info(self):
         """获取最后一次检索的详细信息"""
         return {
             "used_knowledge_base": self.used_knowledge_base,
-            "used_direct_retrieval": self.used_direct_retrieval,  # 新增
+            "used_direct_retrieval": self.used_direct_retrieval,
+            "used_few_shot": self.used_few_shot,  # 新增
             "retrieved_docs_count": len(self.last_retrieved_docs),
             "sources": [
                 {
