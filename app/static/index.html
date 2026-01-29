@@ -297,7 +297,12 @@
                             <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
                                 ${data.knowledge_base_used ? '✅ 本地知识库' : '❌ 模型通用知识'}
                             </span>
-                            ${data.knowledge_base_used ? `
+                            ${data.used_direct_retrieval ? `
+                                <span class="badge success">
+                                    ⚡ 直接检索（未使用LLM）
+                                </span>
+                            ` : ''}
+                            ${data.knowledge_base_used && !data.used_direct_retrieval ? `
                                 <span class="badge info">
                                     📄 检索到 ${data.retrieved_docs_count} 个文档片段
                                 </span>

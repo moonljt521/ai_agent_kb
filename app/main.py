@@ -28,9 +28,11 @@ async def chat(query: str):
             "query": query,
             "answer": answer,
             "knowledge_base_used": retrieval_info["used_knowledge_base"],
+            "used_direct_retrieval": retrieval_info["used_direct_retrieval"],  # 新增
             "retrieved_docs_count": retrieval_info["retrieved_docs_count"],
             "sources": retrieval_info["sources"],
-            "data_source": "本地知识库" if retrieval_info["used_knowledge_base"] else "模型通用知识"
+            "data_source": "本地知识库（直接检索）" if retrieval_info["used_direct_retrieval"] 
+                          else ("本地知识库" if retrieval_info["used_knowledge_base"] else "模型通用知识")
         }
     except Exception as e:
         return {"query": query, "error": str(e)}

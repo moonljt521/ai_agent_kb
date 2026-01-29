@@ -5,6 +5,7 @@ from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 from app.core.rag import RAGManager
+from app.core.keyword_matcher import KeywordMatcher
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -33,8 +34,15 @@ class AgentManager:
             print(f"✅ 使用阿里云模型: {os.getenv('LLM_MODEL', 'qwen-plus')}")
         
         self.rag = RAGManager()
+        self.keyword_matcher = KeywordMatcher()  # 新增：关键词匹配器
         self.last_retrieved_docs = []  # 记录最后检索的文档
         self.used_knowledge_base = False  # 标记是否使用了知识库
+        self.used_direct_retrieval = False  # 标记是否使用了直接检索（不走LLM）
+        
+        # 打印关键词统计
+        stats = self.keyword_matcher.get_statistics()
+        print(f"📚 已加载 {stats['总关键词数']} 个关键词")
+        print("💡 命中关键词将直接检索，节省 LLM 调用")
 
     def create_agent(self):
         # 1. 创建检索器
@@ -95,29 +103,69 @@ class AgentManager:
         
         return response.content
 
-    def run(self, query: str):
-        # Groq 使用简化的 RAG，阿里云使用 Agent
-        if self.provider == "groq":
-            return self.run_simple_rag(query)
-        else:
-            # 重置状态
-            self.last_retrieved_docs = []
-            self.used_knowledge_base = False
+    def direct_retrieval(self, query: str) -> str:
+        """
+        直接检索模式 - 不使用 LLM，直接返回向量库检索结果
+        适用于命中关键词的简单查询
+        """
+        # 重置状态
+        self.last_retrieved_docs = []
+        self.used_knowledge_base = True
+        self.used_direct_retrieval = True
+        
+        # 检索相关文档
+        retriever = self.rag.get_retriever()
+        docs = retriever.invoke(query)
+        self.last_retrieved_docs = docs
+        
+        if not docs:
+            return "抱歉，在知识库中没有找到相关内容。"
+        
+        # 直接返回检索到的文档内容（不经过 LLM 加工）
+        # 取前3个最相关的文档片段
+        result_parts = []
+        for i, doc in enumerate(docs[:3], 1):
+            content = doc.page_content.strip()
+            source = doc.metadata.get("source", "未知")
+            page = doc.metadata.get("page", "未知")
             
-            graph = self.create_agent()
-            # 调用图，输入消息列表
-            inputs = {"messages": [{"role": "user", "content": query}]}
-            result = graph.invoke(inputs)
-            # 获取最后一条 AI 消息的内容
-            messages = result.get("messages", [])
-            if messages:
-                return messages[-1].content
-            return "未能生成回复。"
+            result_parts.append(f"【片段 {i}】（来源：{source}，页码：{page}）\n{content}")
+        
+        return "\n\n" + "\n\n".join(result_parts)
+
+    def run(self, query: str):
+        # 先检查是否命中关键词
+        should_direct, reason = self.keyword_matcher.should_use_direct_retrieval(query)
+        
+        if should_direct:
+            print(f"🎯 {reason}")
+            return self.direct_retrieval(query)
+        else:
+            print(f"🤖 {reason}")
+            # Groq 使用简化的 RAG，阿里云使用 Agent
+            if self.provider == "groq":
+                return self.run_simple_rag(query)
+            else:
+                # 重置状态
+                self.last_retrieved_docs = []
+                self.used_knowledge_base = False
+                self.used_direct_retrieval = False
+                
+                graph = self.create_agent()
+                # 调用图，输入消息列表
+                inputs = {"messages": [{"role": "user", "content": query}]}
+                result = graph.invoke(inputs)
+                # 获取最后一条 AI 消息的内容
+                messages = result.get("messages", [])
+                if messages:
+                    return messages[-1].content
+                return "未能生成回复。"
     
     def get_last_retrieval_info(self):
         """获取最后一次检索的详细信息"""
         return {
             "used_knowledge_base": self.used_knowledge_base,
+            "used_direct_retrieval": self.used_direct_retrieval,  # 新增
             "retrieved_docs_count": len(self.last_retrieved_docs),
             "sources": [
                 {
