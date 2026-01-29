@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.core.agent import AgentManager
 from dotenv import load_dotenv
 import os
@@ -8,9 +10,13 @@ load_dotenv()
 app = FastAPI(title="AI Agent Knowledge Base API")
 agent_manager = AgentManager()
 
+# 挂载静态文件目录
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 @app.get("/")
 async def root():
-    return {"message": "AI Agent Knowledge Base is running"}
+    """返回网页界面"""
+    return FileResponse("app/static/index.html")
 
 @app.get("/chat")
 async def chat(query: str):

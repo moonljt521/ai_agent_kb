@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四大名著知识有问必答</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .chat-box {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #queryInput {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        #queryInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #submitBtn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #submitBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #submitBtn:active {
+            transform: translateY(0);
+        }
+
+        #submitBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-box.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .question {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .answer {
+            color: #333;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            white-space: pre-wrap;
+        }
+
+        .meta {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 1.1em;
+            padding: 20px;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .sources {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .sources h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .source-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            border-left: 3px solid #667eea;
+        }
+
+        .source-item strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 四大名著知识有问必答</h1>
+            <p>红楼梦 · 三国演义 · 西游记 · 水浒传</p>
+        </div>
+
+        <div class="chat-box">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="queryInput" 
+                    placeholder="例如：贾宝玉是谁？诸葛亮的故事？孙悟空的师傅？" 
+                    autofocus
+                >
+                <button id="submitBtn">提问</button>
+            </div>
+
+            <div id="resultBox" class="result-box"></div>
+        </div>
+    </div>
+
+    <script>
+        const queryInput = document.getElementById('queryInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultBox = document.getElementById('resultBox');
+
+        // 回车提交
+        queryInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitQuery();
+            }
+        });
+
+        // 点击提交
+        submitBtn.addEventListener('click', submitQuery);
+
+        async function submitQuery() {
+            const query = queryInput.value.trim();
+            
+            if (!query) {
+                alert('请输入问题');
+                return;
+            }
+
+            // 禁用输入
+            submitBtn.disabled = true;
+            submitBtn.textContent = '思考中...';
+            
+            // 显示加载状态
+            resultBox.className = 'result-box show';
+            resultBox.innerHTML = '<div class="loading">正在思考</div>';
+
+            try {
+                const response = await fetch(`/chat?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    resultBox.innerHTML = `
+                        <div class="error">
+                            <strong>❌ 错误：</strong>${data.error}
+                        </div>
+                    `;
+                } else {
+                    let sourcesHtml = '';
+                    if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
+                        sourcesHtml = `
+                            <div class="sources">
+                                <h4>📚 引用来源：</h4>
+                                ${data.sources.map(source => `
+                                    <div class="source-item">
+                                        <strong>文档：</strong>${source.source} 
+                                        <strong>页码：</strong>${source.page}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+
+                    resultBox.innerHTML = `
+                        <div class="question">💬 ${data.query}</div>
+                        <div class="answer">${data.answer}</div>
+                        <div class="meta">
+                            <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
+                                ${data.knowledge_base_used ? '✅ 本地知识库' : '❌ 模型通用知识'}
+                            </span>
+                            ${data.knowledge_base_used ? `
+                                <span class="badge info">
+                                    📄 检索到 ${data.retrieved_docs_count} 个文档片段
+                                </span>
+                            ` : ''}
+                        </div>
+                        ${sourcesHtml}
+                    `;
+                }
+            } catch (error) {
+                resultBox.innerHTML = `
+                    <div class="error">
+                        <strong>❌ 网络错误：</strong>${error.message}
+                    </div>
+                `;
+            } finally {
+                // 恢复输入
+                submitBtn.disabled = false;
+                submitBtn.textContent = '提问';
+                queryInput.value = '';
+                queryInput.focus();
+            }
+        }
+    </script>
+</body>
+</html>
