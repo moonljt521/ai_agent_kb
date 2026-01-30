@@ -10,3 +10,4 @@ chromadb
 pypdf
 unstructured
 ebooklib  # 用于解析 EPUB 文件
+sentence-transformers  # 本地免费 Embedding 模型

@@ -143,6 +143,18 @@ A: 删除 `vector_store/` 目录：`rm -rf vector_store/`
 **Q: 如何知道回答来自哪里？**  
 A: 每次回答都会显示数据来源（本地知识库 vs 模型通用知识）
 
+**Q: 检索结果不准确怎么办？** ⚠️  
+A: 如果切换了 Embedding 类型（阿里云 ↔ 本地），必须重新导入文档！
+```bash
+# 快速修复
+./fix_accuracy.sh
+
+# 或手动修复
+rm -rf vector_store
+python scripts/ingest.py
+```
+详见：[准确度问题修复](ACCURACY_FIX.md)
+
 ## 📚 更多文档
 
 - [快速使用指南](docs/QUICK_START.md) - 详细的使用说明
@@ -154,6 +166,22 @@ A: 每次回答都会显示数据来源（本地知识库 vs 模型通用知识�
 - [向量数据库详解](docs/VECTOR_STORE.md) - 了解 vector_store 的工作原理
 - [项目总结](docs/SUMMARY.md) - 功能概览和使用场景
 - [提供商对比](docs/PROVIDER_COMPARISON.md) - 阿里云 vs Groq
+
+### 🔧 故障排查
+
+- [准确度问题修复](ACCURACY_FIX.md) - 检索不准确的解决方案 ⭐
+- [准确度问题详解](docs/ACCURACY_ISSUES.md) - 深入了解原因和解决方法
+
+### ⚡ 性能优化
+
+- [关键词增强检索](docs/KEYWORD_ENHANCED_RETRIEVAL.md) - 智能优化检索策略 ⭐
+- [关键词优化说明](docs/KEYWORD_OPTIMIZATION.md) - 原始关键词功能说明
+- [Few-Shot 学习指南](docs/FEW_SHOT_GUIDE.md) - 提高回答质量和格式统一
+- [LLM 优化技巧](docs/LLM_OPTIMIZATION.md) - 各种优化策略
+
+### 📑 高级功能
+
+- [文档标签系统](docs/DOCUMENT_TAGS.md) - 按书名、作者、类别精准检索 ⭐
 
 ## 📄 许可证
 

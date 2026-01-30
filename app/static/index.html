@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>四大名著知识有问必答</title>
+    <!-- 引入 marked.js 用于 Markdown 解析 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -39,18 +41,78 @@
             opacity: 0.9;
         }
 
+        .model-info {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .model-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-size: 0.95em;
+        }
+
+        .model-item .icon {
+            font-size: 1.2em;
+        }
+
+        .model-item .label {
+            opacity: 0.8;
+            margin-right: 5px;
+        }
+
+        .model-item .value {
+            font-weight: bold;
+        }
+
         .chat-box {
             background: white;
             border-radius: 15px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             padding: 30px;
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         .input-group {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
         }
 
         #queryInput {
@@ -94,16 +156,8 @@
             transform: none;
         }
 
-        .result-box {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-            display: none;
-        }
-
-        .result-box.show {
-            display: block;
+        .message-bubble {
+            margin-bottom: 20px;
             animation: fadeIn 0.3s;
         }
 
@@ -112,18 +166,127 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .question {
-            color: #667eea;
-            font-weight: bold;
+        .message-question {
+            display: flex;
+            justify-content: flex-end;
             margin-bottom: 10px;
-            font-size: 1.1em;
+        }
+
+        .question-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 18px 18px 4px 18px;
+            max-width: 70%;
+            word-wrap: break-word;
+            font-size: 1em;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .message-answer {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .answer-bubble {
+            background: #f8f9fa;
+            border-radius: 18px 18px 18px 4px;
+            padding: 20px;
+            max-width: 85%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .answer {
             color: #333;
             line-height: 1.8;
             margin-bottom: 15px;
-            white-space: pre-wrap;
+        }
+
+        .answer h1, .answer h2, .answer h3 {
+            color: #667eea;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .answer h1 {
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+
+        .answer h2 {
+            font-size: 1.3em;
+        }
+
+        .answer h3 {
+            font-size: 1.1em;
+        }
+
+        .answer p {
+            margin-bottom: 10px;
+        }
+
+        .answer ul, .answer ol {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .answer li {
+            margin-bottom: 5px;
+        }
+
+        .answer strong {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .answer em {
+            font-style: italic;
+            color: #764ba2;
+        }
+
+        .answer code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .answer pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-bottom: 10px;
+        }
+
+        .answer pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .answer blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        .answer hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 15px 0;
+        }
+
+        .answer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .answer a:hover {
+            text-decoration: underline;
         }
 
         .meta {
@@ -157,6 +320,63 @@
         .badge.warning {
             background: #fff3cd;
             color: #856404;
+        }
+
+        .badge.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge.primary {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .process-info {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .process-info h4 {
+            color: #667eea;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .process-steps {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .process-step {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+            padding: 5px 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .process-step .icon {
+            font-size: 1.1em;
+        }
+
+        .process-step.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .process-step.inactive {
+            opacity: 0.5;
         }
 
         .loading {
@@ -216,9 +436,25 @@
         <div class="header">
             <h1>📚 四大名著知识有问必答</h1>
             <p>红楼梦 · 三国演义 · 西游记 · 水浒传</p>
+            <div class="model-info" id="modelInfo">
+                <div class="model-item">
+                    <span class="icon">🤖</span>
+                    <span class="label">AI模型:</span>
+                    <span class="value" id="llmModel">加载中...</span>
+                </div>
+                <div class="model-item">
+                    <span class="icon">🔍</span>
+                    <span class="label">向量模型:</span>
+                    <span class="value" id="embeddingModel">加载中...</span>
+                </div>
+            </div>
         </div>
 
         <div class="chat-box">
+            <div class="chat-messages" id="chatMessages">
+                <!-- 聊天消息将在这里显示 -->
+            </div>
+
             <div class="input-group">
                 <input 
                     type="text" 
@@ -228,15 +464,59 @@
                 >
                 <button id="submitBtn">提问</button>
             </div>
-
-            <div id="resultBox" class="result-box"></div>
         </div>
     </div>
 
     <script>
         const queryInput = document.getElementById('queryInput');
         const submitBtn = document.getElementById('submitBtn');
-        const resultBox = document.getElementById('resultBox');
+        const chatMessages = document.getElementById('chatMessages');
+
+        // 配置 marked.js
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,  // 支持 GitHub 风格的换行
+                gfm: true,     // 启用 GitHub Flavored Markdown
+            });
+        }
+
+        // Markdown 转 HTML 的函数
+        function parseMarkdown(text) {
+            if (typeof marked !== 'undefined') {
+                return marked.parse(text);
+            }
+            // 如果 marked.js 加载失败，使用简单的文本替换
+            return text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // 粗体
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')              // 斜体
+                .replace(/\n/g, '<br>')                            // 换行
+                .replace(/^### (.+)$/gm, '<h3>$1</h3>')           // 三级标题
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')            // 二级标题
+                .replace(/^# (.+)$/gm, '<h1>$1</h1>');            // 一级标题
+        }
+
+        // 页面加载时获取模型配置信息
+        async function loadModelInfo() {
+            try {
+                const response = await fetch('/config');
+                const data = await response.json();
+                
+                if (!data.error) {
+                    document.getElementById('llmModel').textContent = data.llm_model;
+                    document.getElementById('embeddingModel').textContent = data.embedding_model;
+                } else {
+                    document.getElementById('llmModel').textContent = '获取失败';
+                    document.getElementById('embeddingModel').textContent = '获取失败';
+                }
+            } catch (error) {
+                console.error('加载模型信息失败:', error);
+                document.getElementById('llmModel').textContent = '获取失败';
+                document.getElementById('embeddingModel').textContent = '获取失败';
+            }
+        }
+
+        // 页面加载完成后立即获取模型信息
+        loadModelInfo();
 
         // 回车提交
         queryInput.addEventListener('keypress', (e) => {
@@ -248,6 +528,171 @@
         // 点击提交
         submitBtn.addEventListener('click', submitQuery);
 
+        // 添加问题气泡
+        function addQuestionBubble(question) {
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.innerHTML = `
+                <div class="message-question">
+                    <div class="question-bubble">${question}</div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+        }
+
+        // 添加加载气泡
+        function addLoadingBubble() {
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.id = 'loadingBubble';
+            messageBubble.innerHTML = `
+                <div class="message-answer">
+                    <div class="answer-bubble">
+                        <div class="loading">正在思考</div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+        }
+
+        // 移除加载气泡
+        function removeLoadingBubble() {
+            const loadingBubble = document.getElementById('loadingBubble');
+            if (loadingBubble) {
+                loadingBubble.remove();
+            }
+        }
+
+        // 创建空答案气泡（用于流式输出）
+        function createAnswerBubble() {
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.innerHTML = `
+                <div class="message-answer">
+                    <div class="answer-bubble">
+                        <div class="answer" id="streamingAnswer"></div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+            return messageBubble;
+        }
+
+        // 更新答案气泡内容
+        function updateAnswerBubble(messageBubble, text) {
+            const answerDiv = messageBubble.querySelector('#streamingAnswer');
+            if (answerDiv) {
+                answerDiv.textContent = text;
+                scrollToBottom();
+            }
+        }
+
+        // 完成答案气泡（添加元数据）
+        function finalizeAnswerBubble(messageBubble, data) {
+            let sourcesHtml = '';
+            if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
+                sourcesHtml = `
+                    <div class="sources">
+                        <h4>📚 引用来源：</h4>
+                        ${data.sources.map(source => `
+                            <div class="source-item">
+                                <strong>文档：</strong>${source.source} 
+                                <strong>页码：</strong>${source.page}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            // 判断是否使用了 LLM
+            const usedLLM = !data.used_direct_retrieval;
+            
+            // 构建处理流程信息
+            const processInfoHtml = `
+                <div class="process-info">
+                    <h4>⚙️ 处理流程</h4>
+                    <div class="process-steps">
+                        <div class="process-step ${data.knowledge_base_used ? 'active' : 'inactive'}">
+                            <span class="icon">${data.knowledge_base_used ? '✅' : '❌'}</span>
+                            <span>本地知识库</span>
+                        </div>
+                        <div class="process-step ${usedLLM ? 'active' : 'inactive'}">
+                            <span class="icon">${usedLLM ? '✅' : '❌'}</span>
+                            <span>LLM 处理</span>
+                        </div>
+                        ${data.keyword_matched ? `
+                            <div class="process-step active">
+                                <span class="icon">🎯</span>
+                                <span>关键词匹配</span>
+                            </div>
+                        ` : ''}
+                        ${data.used_few_shot ? `
+                            <div class="process-step active">
+                                <span class="icon">📝</span>
+                                <span>Few-Shot</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            const answerBubble = messageBubble.querySelector('.answer-bubble');
+            const answerDiv = messageBubble.querySelector('#streamingAnswer');
+            
+            // 解析 Markdown
+            const parsedAnswer = parseMarkdown(answerDiv.textContent);
+            answerDiv.innerHTML = parsedAnswer;
+            answerDiv.removeAttribute('id');
+            
+            // 添加处理流程信息（插入到答案前面）
+            answerBubble.insertAdjacentHTML('afterbegin', processInfoHtml);
+            
+            // 添加元数据和来源
+            answerBubble.insertAdjacentHTML('beforeend', `
+                <div class="meta">
+                    <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
+                        ${data.knowledge_base_used ? '✅ 使用知识库' : '❌ 未使用知识库'}
+                    </span>
+                    <span class="badge ${usedLLM ? 'primary' : 'info'}">
+                        ${usedLLM ? '🤖 使用 LLM' : '⚡ 直接检索'}
+                    </span>
+                    ${data.knowledge_base_used && data.retrieved_docs_count ? `
+                        <span class="badge info">
+                            📄 检索 ${data.retrieved_docs_count} 个片段
+                        </span>
+                    ` : ''}
+                </div>
+                ${sourcesHtml}
+            `);
+            
+            scrollToBottom();
+        }
+
+        // 添加错误气泡
+        function addErrorBubble(errorMessage) {
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.innerHTML = `
+                <div class="message-answer">
+                    <div class="answer-bubble">
+                        <div class="error">
+                            <strong>❌ 错误：</strong>${errorMessage}
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
         async function submitQuery() {
             const query = queryInput.value.trim();
             
@@ -256,72 +701,64 @@
                 return;
             }
 
+            // 添加问题气泡
+            addQuestionBubble(query);
+
             // 禁用输入
             submitBtn.disabled = true;
             submitBtn.textContent = '思考中...';
+            queryInput.value = '';
             
-            // 显示加载状态
-            resultBox.className = 'result-box show';
-            resultBox.innerHTML = '<div class="loading">正在思考</div>';
+            // 创建答案气泡
+            const answerBubble = createAnswerBubble();
+            let fullText = '';
 
             try {
                 const response = await fetch(`/chat?query=${encodeURIComponent(query)}`);
-                const data = await response.json();
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
 
-                if (data.error) {
-                    resultBox.innerHTML = `
-                        <div class="error">
-                            <strong>❌ 错误：</strong>${data.error}
-                        </div>
-                    `;
-                } else {
-                    let sourcesHtml = '';
-                    if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
-                        sourcesHtml = `
-                            <div class="sources">
-                                <h4>📚 引用来源：</h4>
-                                ${data.sources.map(source => `
-                                    <div class="source-item">
-                                        <strong>文档：</strong>${source.source} 
-                                        <strong>页码：</strong>${source.page}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.slice(6);
+                            try {
+                                const data = JSON.parse(jsonStr);
+                                
+                                if (data.type === 'text') {
+                                    // 流式文本
+                                    fullText += data.content;
+                                    updateAnswerBubble(answerBubble, fullText);
+                                } else if (data.type === 'metadata') {
+                                    // 元数据
+                                    finalizeAnswerBubble(answerBubble, data);
+                                } else if (data.type === 'error') {
+                                    // 错误
+                                    answerBubble.remove();
+                                    addErrorBubble(data.error);
+                                } else if (data.type === 'done') {
+                                    // 完成
+                                    console.log('Stream completed');
+                                }
+                            } catch (e) {
+                                console.error('Parse error:', e);
+                            }
+                        }
                     }
-
-                    resultBox.innerHTML = `
-                        <div class="question">💬 ${data.query}</div>
-                        <div class="answer">${data.answer}</div>
-                        <div class="meta">
-                            <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
-                                ${data.knowledge_base_used ? '✅ 本地知识库' : '❌ 模型通用知识'}
-                            </span>
-                            ${data.used_direct_retrieval ? `
-                                <span class="badge success">
-                                    ⚡ 直接检索（未使用LLM）
-                                </span>
-                            ` : ''}
-                            ${data.knowledge_base_used && !data.used_direct_retrieval ? `
-                                <span class="badge info">
-                                    📄 检索到 ${data.retrieved_docs_count} 个文档片段
-                                </span>
-                            ` : ''}
-                        </div>
-                        ${sourcesHtml}
-                    `;
                 }
             } catch (error) {
-                resultBox.innerHTML = `
-                    <div class="error">
-                        <strong>❌ 网络错误：</strong>${error.message}
-                    </div>
-                `;
+                answerBubble.remove();
+                addErrorBubble(error.message);
             } finally {
                 // 恢复输入
                 submitBtn.disabled = false;
                 submitBtn.textContent = '提问';
-                queryInput.value = '';
                 queryInput.focus();
             }
         }
