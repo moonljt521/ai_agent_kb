@@ -80,12 +80,39 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             padding: 30px;
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         .input-group {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
         }
 
         #queryInput {
@@ -129,16 +156,8 @@
             transform: none;
         }
 
-        .result-box {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-            display: none;
-        }
-
-        .result-box.show {
-            display: block;
+        .message-bubble {
+            margin-bottom: 20px;
             animation: fadeIn 0.3s;
         }
 
@@ -147,11 +166,34 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .question {
-            color: #667eea;
-            font-weight: bold;
+        .message-question {
+            display: flex;
+            justify-content: flex-end;
             margin-bottom: 10px;
-            font-size: 1.1em;
+        }
+
+        .question-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 18px 18px 4px 18px;
+            max-width: 70%;
+            word-wrap: break-word;
+            font-size: 1em;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .message-answer {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .answer-bubble {
+            background: #f8f9fa;
+            border-radius: 18px 18px 18px 4px;
+            padding: 20px;
+            max-width: 85%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .answer {
@@ -409,6 +451,10 @@
         </div>
 
         <div class="chat-box">
+            <div class="chat-messages" id="chatMessages">
+                <!-- 聊天消息将在这里显示 -->
+            </div>
+
             <div class="input-group">
                 <input 
                     type="text" 
@@ -418,15 +464,13 @@
                 >
                 <button id="submitBtn">提问</button>
             </div>
-
-            <div id="resultBox" class="result-box"></div>
         </div>
     </div>
 
     <script>
         const queryInput = document.getElementById('queryInput');
         const submitBtn = document.getElementById('submitBtn');
-        const resultBox = document.getElementById('resultBox');
+        const chatMessages = document.getElementById('chatMessages');
 
         // 配置 marked.js
         if (typeof marked !== 'undefined') {
@@ -484,85 +528,100 @@
         // 点击提交
         submitBtn.addEventListener('click', submitQuery);
 
-        async function submitQuery() {
-            const query = queryInput.value.trim();
-            
-            if (!query) {
-                alert('请输入问题');
-                return;
+        // 添加问题气泡
+        function addQuestionBubble(question) {
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.innerHTML = `
+                <div class="message-question">
+                    <div class="question-bubble">${question}</div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+        }
+
+        // 添加加载气泡
+        function addLoadingBubble() {
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.id = 'loadingBubble';
+            messageBubble.innerHTML = `
+                <div class="message-answer">
+                    <div class="answer-bubble">
+                        <div class="loading">正在思考</div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+        }
+
+        // 移除加载气泡
+        function removeLoadingBubble() {
+            const loadingBubble = document.getElementById('loadingBubble');
+            if (loadingBubble) {
+                loadingBubble.remove();
+            }
+        }
+
+        // 添加答案气泡
+        function addAnswerBubble(data) {
+            let sourcesHtml = '';
+            if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
+                sourcesHtml = `
+                    <div class="sources">
+                        <h4>📚 引用来源：</h4>
+                        ${data.sources.map(source => `
+                            <div class="source-item">
+                                <strong>文档：</strong>${source.source} 
+                                <strong>页码：</strong>${source.page}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
             }
 
-            // 禁用输入
-            submitBtn.disabled = true;
-            submitBtn.textContent = '思考中...';
+            // 使用 Markdown 解析答案
+            const parsedAnswer = parseMarkdown(data.answer);
+
+            // 判断是否使用了 LLM
+            const usedLLM = !data.used_direct_retrieval;
             
-            // 显示加载状态
-            resultBox.className = 'result-box show';
-            resultBox.innerHTML = '<div class="loading">正在思考</div>';
-
-            try {
-                const response = await fetch(`/chat?query=${encodeURIComponent(query)}`);
-                const data = await response.json();
-
-                if (data.error) {
-                    resultBox.innerHTML = `
-                        <div class="error">
-                            <strong>❌ 错误：</strong>${data.error}
+            // 构建处理流程信息
+            const processInfoHtml = `
+                <div class="process-info">
+                    <h4>⚙️ 处理流程</h4>
+                    <div class="process-steps">
+                        <div class="process-step ${data.knowledge_base_used ? 'active' : 'inactive'}">
+                            <span class="icon">${data.knowledge_base_used ? '✅' : '❌'}</span>
+                            <span>本地知识库</span>
                         </div>
-                    `;
-                } else {
-                    let sourcesHtml = '';
-                    if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
-                        sourcesHtml = `
-                            <div class="sources">
-                                <h4>📚 引用来源：</h4>
-                                ${data.sources.map(source => `
-                                    <div class="source-item">
-                                        <strong>文档：</strong>${source.source} 
-                                        <strong>页码：</strong>${source.page}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
-                    }
-
-                    // 使用 Markdown 解析答案
-                    const parsedAnswer = parseMarkdown(data.answer);
-
-                    // 判断是否使用了 LLM
-                    const usedLLM = !data.used_direct_retrieval;
-                    
-                    // 构建处理流程信息
-                    const processInfoHtml = `
-                        <div class="process-info">
-                            <h4>⚙️ 处理流程</h4>
-                            <div class="process-steps">
-                                <div class="process-step ${data.knowledge_base_used ? 'active' : 'inactive'}">
-                                    <span class="icon">${data.knowledge_base_used ? '✅' : '❌'}</span>
-                                    <span>本地知识库</span>
-                                </div>
-                                <div class="process-step ${usedLLM ? 'active' : 'inactive'}">
-                                    <span class="icon">${usedLLM ? '✅' : '❌'}</span>
-                                    <span>LLM 处理</span>
-                                </div>
-                                ${data.keyword_matched ? `
-                                    <div class="process-step active">
-                                        <span class="icon">🎯</span>
-                                        <span>关键词匹配</span>
-                                    </div>
-                                ` : ''}
-                                ${data.used_few_shot ? `
-                                    <div class="process-step active">
-                                        <span class="icon">📝</span>
-                                        <span>Few-Shot</span>
-                                    </div>
-                                ` : ''}
-                            </div>
+                        <div class="process-step ${usedLLM ? 'active' : 'inactive'}">
+                            <span class="icon">${usedLLM ? '✅' : '❌'}</span>
+                            <span>LLM 处理</span>
                         </div>
-                    `;
+                        ${data.keyword_matched ? `
+                            <div class="process-step active">
+                                <span class="icon">🎯</span>
+                                <span>关键词匹配</span>
+                            </div>
+                        ` : ''}
+                        ${data.used_few_shot ? `
+                            <div class="process-step active">
+                                <span class="icon">📝</span>
+                                <span>Few-Shot</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
 
-                    resultBox.innerHTML = `
-                        <div class="question">💬 ${data.query}</div>
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.innerHTML = `
+                <div class="message-answer">
+                    <div class="answer-bubble">
                         ${processInfoHtml}
                         <div class="answer">${parsedAnswer}</div>
                         <div class="meta">
@@ -579,19 +638,73 @@
                             ` : ''}
                         </div>
                         ${sourcesHtml}
-                    `;
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+        }
+
+        // 添加错误气泡
+        function addErrorBubble(errorMessage) {
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.innerHTML = `
+                <div class="message-answer">
+                    <div class="answer-bubble">
+                        <div class="error">
+                            <strong>❌ 错误：</strong>${errorMessage}
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function submitQuery() {
+            const query = queryInput.value.trim();
+            
+            if (!query) {
+                alert('请输入问题');
+                return;
+            }
+
+            // 添加问题气泡
+            addQuestionBubble(query);
+
+            // 禁用输入
+            submitBtn.disabled = true;
+            submitBtn.textContent = '思考中...';
+            queryInput.value = '';
+            
+            // 显示加载状态
+            addLoadingBubble();
+
+            try {
+                const response = await fetch(`/chat?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                // 移除加载气泡
+                removeLoadingBubble();
+
+                if (data.error) {
+                    addErrorBubble(data.error);
+                } else {
+                    addAnswerBubble(data);
                 }
             } catch (error) {
-                resultBox.innerHTML = `
-                    <div class="error">
-                        <strong>❌ 网络错误：</strong>${error.message}
-                    </div>
-                `;
+                removeLoadingBubble();
+                addErrorBubble(error.message);
             } finally {
                 // 恢复输入
                 submitBtn.disabled = false;
                 submitBtn.textContent = '提问';
-                queryInput.value = '';
                 queryInput.focus();
             }
         }

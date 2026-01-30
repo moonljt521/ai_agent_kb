@@ -23,36 +23,18 @@ class RAGManager:
 
     def _get_embeddings(self):
         """
-        获取 Embedding 模型
-        
-        支持的类型：
-        - aliyun: 阿里云 text-embedding-v3（付费）
-        - local: 本地 HuggingFace 模型（免费）
+        获取 Embedding 模型（本地 HuggingFace 模型）
         """
-        embedding_type = os.getenv("EMBEDDING_TYPE", "local").lower()
-        
-        if embedding_type == "aliyun":
-            from langchain_community.embeddings import DashScopeEmbeddings
-            print("📊 使用阿里云 Embedding: text-embedding-v3")
-            print("💰 按 Token 计费")
-            return DashScopeEmbeddings(
-                model=os.getenv("EMBEDDING_MODEL", "text-embedding-v3")
-            )
-        
-        elif embedding_type == "local":
-            from langchain_community.embeddings import HuggingFaceEmbeddings
-            model_name = os.getenv("LOCAL_EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
-            print(f"📊 使用本地 Embedding: {model_name}")
-            print("💰 完全免费，无需 API Key")
-            print("⏳ 首次使用会下载模型（约 500MB），请耐心等待...")
-            return HuggingFaceEmbeddings(
-                model_name=model_name,
-                model_kwargs={'device': 'cpu'},
-                encode_kwargs={'normalize_embeddings': True}
-            )
-        
-        else:
-            raise ValueError(f"不支持的 Embedding 类型: {embedding_type}")
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+        model_name = os.getenv("LOCAL_EMBEDDING_MODEL", "BAAI/bge-large-zh-v1.5")
+        print(f"📊 使用本地 Embedding: {model_name}")
+        print("💰 完全免费，无需 API Key")
+        print("⏳ 首次使用会下载模型（约 500MB），请耐心等待...")
+        return HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs={'device': 'cpu'},
+            encode_kwargs={'normalize_embeddings': True}
+        )
 
     def load_and_index(self):
         """加载 data 目录下的文档并建立索引（带标签）"""

@@ -83,7 +83,6 @@ async def get_config():
     """获取当前配置信息（LLM 和 Embedding 模型）"""
     try:
         model_provider = os.getenv("MODEL_PROVIDER", "aliyun")
-        embedding_type = os.getenv("EMBEDDING_TYPE", "local")
         
         # LLM 模型信息
         if model_provider == "aliyun":
@@ -95,27 +94,19 @@ async def get_config():
         else:
             llm_display = "未知"
         
-        # Embedding 模型信息
-        if embedding_type == "aliyun":
-            embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-v3")
-            embedding_display = f"阿里云 {embedding_model}"
-        elif embedding_type == "local":
-            embedding_model = os.getenv("LOCAL_EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
-            # 简化显示名称
-            if "bge-large-zh" in embedding_model:
-                embedding_display = "BGE-large-zh-v1.5 (本地)"
-            elif "bge" in embedding_model:
-                embedding_display = "BGE (本地)"
-            else:
-                embedding_display = f"{embedding_model.split('/')[-1]} (本地)"
+        # Embedding 模型信息（仅本地）
+        embedding_model = os.getenv("LOCAL_EMBEDDING_MODEL", "BAAI/bge-large-zh-v1.5")
+        if "bge-large-zh" in embedding_model:
+            embedding_display = "BGE-large-zh-v1.5 (本地)"
+        elif "bge" in embedding_model:
+            embedding_display = "BGE (本地)"
         else:
-            embedding_display = "未知"
+            embedding_display = f"{embedding_model.split('/')[-1]} (本地)"
         
         return {
             "llm_model": llm_display,
             "embedding_model": embedding_display,
             "model_provider": model_provider,
-            "embedding_type": embedding_type,
             "enable_direct_retrieval": enable_direct_retrieval
         }
     except Exception as e:
