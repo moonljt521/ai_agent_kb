@@ -42,12 +42,16 @@ class AgentManager:
         self.last_retrieved_docs = []
         self.used_knowledge_base = False
         self.used_direct_retrieval = False
-        self.used_few_shot = False  # 新增：标记是否使用了 Few-Shot
+        self.used_few_shot = False
+        self.keyword_matched = False  # 新增：标记是否命中关键词
         
         # 打印关键词统计
         stats = self.keyword_matcher.get_statistics()
         print(f"📚 已加载 {stats['总关键词数']} 个关键词")
-        print("💡 命中关键词将直接检索，节省 LLM 调用")
+        if self.enable_direct_retrieval:
+            print("💡 命中关键词将使用增强检索（k=8），提高准确度")
+        else:
+            print("💡 关键词检查已禁用，所有查询使用标准检索（k=5）")
         
         # 打印 Few-Shot 统计
         if self.few_shot_manager:
@@ -78,17 +82,37 @@ class AgentManager:
             system_prompt="你是一个智能助手。对于用户的任何问题，你都应该先使用 search_knowledge_base 工具搜索本地知识库。如果知识库中有相关内容，请基于知识库内容回答；如果知识库中没有相关内容，再使用你的通用知识回答。"
         )
 
-    def run_simple_rag(self, query: str):
-        """简化的 RAG 实现，不使用 Agent（适用于 Groq）"""
+    def run_simple_rag(self, query: str, keyword_matched=False, book_filter=None):
+        """
+        简化的 RAG 实现，不使用 Agent（适用于 Groq）
+        
+        参数:
+            query: 用户查询
+            keyword_matched: 是否命中关键词（用于优化检索策略）
+            book_filter: 书名过滤（如 "红楼梦"），只检索指定书籍
+        """
         # 重置状态
         self.last_retrieved_docs = []
         self.used_knowledge_base = False
         self.used_few_shot = False
+        self.keyword_matched = keyword_matched  # 记录是否命中关键词
         
         # 1. 检索相关文档
-        retriever = self.rag.get_retriever()
-        docs = retriever.invoke(query)
+        # 如果命中关键词，增加检索数量以获得更全面的信息
+        k = 8 if keyword_matched else 5
+        
+        # 如果指定了书名过滤
+        if book_filter:
+            print(f"📚 限定检索范围：{book_filter}")
+            docs = self.rag.search_by_book(query, book_filter, k=k)
+        else:
+            retriever = self.rag.get_retriever(k=k)
+            docs = retriever.invoke(query)
+        
         self.last_retrieved_docs = docs
+        
+        if keyword_matched:
+            print(f"🎯 命中关键词，使用增强检索（k={k}）")
         
         # 2. 构建提示词
         if docs:
@@ -159,35 +183,49 @@ class AgentManager:
             
             if should_direct:
                 print(f"🎯 {reason}")
-                return self.direct_retrieval(query)
+                # 不再直接返回检索结果，而是传递给 LLM 处理
+                # return self.direct_retrieval(query)  # 旧方式：直接返回
+                
+                # 新方式：命中关键词时使用增强检索，但仍通过 LLM 处理
+                if self.provider == "groq":
+                    return self.run_simple_rag(query, keyword_matched=True)
+                else:
+                    # 阿里云 Agent 模式暂时保持原样
+                    return self.run_agent_mode(query)
             else:
                 print(f"🤖 {reason}")
         
+        # 未命中关键词或未启用直接检索
         # Groq 使用简化的 RAG，阿里云使用 Agent
         if self.provider == "groq":
-            return self.run_simple_rag(query)
+            return self.run_simple_rag(query, keyword_matched=False)
         else:
-            # 重置状态
-            self.last_retrieved_docs = []
-            self.used_knowledge_base = False
-            self.used_direct_retrieval = False
-            
-            graph = self.create_agent()
-            # 调用图，输入消息列表
-            inputs = {"messages": [{"role": "user", "content": query}]}
-            result = graph.invoke(inputs)
-            # 获取最后一条 AI 消息的内容
-            messages = result.get("messages", [])
-            if messages:
-                return messages[-1].content
-            return "未能生成回复。"
+            return self.run_agent_mode(query)
+    
+    def run_agent_mode(self, query: str):
+        """阿里云 Agent 模式"""
+        # 重置状态
+        self.last_retrieved_docs = []
+        self.used_knowledge_base = False
+        self.used_direct_retrieval = False
+        
+        graph = self.create_agent()
+        # 调用图，输入消息列表
+        inputs = {"messages": [{"role": "user", "content": query}]}
+        result = graph.invoke(inputs)
+        # 获取最后一条 AI 消息的内容
+        messages = result.get("messages", [])
+        if messages:
+            return messages[-1].content
+        return "未能生成回复。"
     
     def get_last_retrieval_info(self):
         """获取最后一次检索的详细信息"""
         return {
             "used_knowledge_base": self.used_knowledge_base,
             "used_direct_retrieval": self.used_direct_retrieval,
-            "used_few_shot": self.used_few_shot,  # 新增
+            "used_few_shot": self.used_few_shot,
+            "keyword_matched": self.keyword_matched,  # 新增：是否命中关键词
             "retrieved_docs_count": len(self.last_retrieved_docs),
             "sources": [
                 {

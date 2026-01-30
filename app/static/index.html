@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>四大名著知识有问必答</title>
+    <!-- 引入 marked.js 用于 Markdown 解析 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -37,6 +39,39 @@
         .header p {
             font-size: 1.1em;
             opacity: 0.9;
+        }
+
+        .model-info {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .model-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-size: 0.95em;
+        }
+
+        .model-item .icon {
+            font-size: 1.2em;
+        }
+
+        .model-item .label {
+            opacity: 0.8;
+            margin-right: 5px;
+        }
+
+        .model-item .value {
+            font-weight: bold;
         }
 
         .chat-box {
@@ -123,7 +158,93 @@
             color: #333;
             line-height: 1.8;
             margin-bottom: 15px;
-            white-space: pre-wrap;
+        }
+
+        .answer h1, .answer h2, .answer h3 {
+            color: #667eea;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .answer h1 {
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+
+        .answer h2 {
+            font-size: 1.3em;
+        }
+
+        .answer h3 {
+            font-size: 1.1em;
+        }
+
+        .answer p {
+            margin-bottom: 10px;
+        }
+
+        .answer ul, .answer ol {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .answer li {
+            margin-bottom: 5px;
+        }
+
+        .answer strong {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .answer em {
+            font-style: italic;
+            color: #764ba2;
+        }
+
+        .answer code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .answer pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-bottom: 10px;
+        }
+
+        .answer pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .answer blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        .answer hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 15px 0;
+        }
+
+        .answer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .answer a:hover {
+            text-decoration: underline;
         }
 
         .meta {
@@ -157,6 +278,63 @@
         .badge.warning {
             background: #fff3cd;
             color: #856404;
+        }
+
+        .badge.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge.primary {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .process-info {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .process-info h4 {
+            color: #667eea;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .process-steps {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .process-step {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+            padding: 5px 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .process-step .icon {
+            font-size: 1.1em;
+        }
+
+        .process-step.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .process-step.inactive {
+            opacity: 0.5;
         }
 
         .loading {
@@ -216,6 +394,18 @@
         <div class="header">
             <h1>📚 四大名著知识有问必答</h1>
             <p>红楼梦 · 三国演义 · 西游记 · 水浒传</p>
+            <div class="model-info" id="modelInfo">
+                <div class="model-item">
+                    <span class="icon">🤖</span>
+                    <span class="label">AI模型:</span>
+                    <span class="value" id="llmModel">加载中...</span>
+                </div>
+                <div class="model-item">
+                    <span class="icon">🔍</span>
+                    <span class="label">向量模型:</span>
+                    <span class="value" id="embeddingModel">加载中...</span>
+                </div>
+            </div>
         </div>
 
         <div class="chat-box">
@@ -237,6 +427,52 @@
         const queryInput = document.getElementById('queryInput');
         const submitBtn = document.getElementById('submitBtn');
         const resultBox = document.getElementById('resultBox');
+
+        // 配置 marked.js
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,  // 支持 GitHub 风格的换行
+                gfm: true,     // 启用 GitHub Flavored Markdown
+            });
+        }
+
+        // Markdown 转 HTML 的函数
+        function parseMarkdown(text) {
+            if (typeof marked !== 'undefined') {
+                return marked.parse(text);
+            }
+            // 如果 marked.js 加载失败，使用简单的文本替换
+            return text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // 粗体
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')              // 斜体
+                .replace(/\n/g, '<br>')                            // 换行
+                .replace(/^### (.+)$/gm, '<h3>$1</h3>')           // 三级标题
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')            // 二级标题
+                .replace(/^# (.+)$/gm, '<h1>$1</h1>');            // 一级标题
+        }
+
+        // 页面加载时获取模型配置信息
+        async function loadModelInfo() {
+            try {
+                const response = await fetch('/config');
+                const data = await response.json();
+                
+                if (!data.error) {
+                    document.getElementById('llmModel').textContent = data.llm_model;
+                    document.getElementById('embeddingModel').textContent = data.embedding_model;
+                } else {
+                    document.getElementById('llmModel').textContent = '获取失败';
+                    document.getElementById('embeddingModel').textContent = '获取失败';
+                }
+            } catch (error) {
+                console.error('加载模型信息失败:', error);
+                document.getElementById('llmModel').textContent = '获取失败';
+                document.getElementById('embeddingModel').textContent = '获取失败';
+            }
+        }
+
+        // 页面加载完成后立即获取模型信息
+        loadModelInfo();
 
         // 回车提交
         queryInput.addEventListener('keypress', (e) => {
@@ -290,26 +526,55 @@
                         `;
                     }
 
+                    // 使用 Markdown 解析答案
+                    const parsedAnswer = parseMarkdown(data.answer);
+
+                    // 判断是否使用了 LLM
+                    const usedLLM = !data.used_direct_retrieval;
+                    
+                    // 构建处理流程信息
+                    const processInfoHtml = `
+                        <div class="process-info">
+                            <h4>⚙️ 处理流程</h4>
+                            <div class="process-steps">
+                                <div class="process-step ${data.knowledge_base_used ? 'active' : 'inactive'}">
+                                    <span class="icon">${data.knowledge_base_used ? '✅' : '❌'}</span>
+                                    <span>本地知识库</span>
+                                </div>
+                                <div class="process-step ${usedLLM ? 'active' : 'inactive'}">
+                                    <span class="icon">${usedLLM ? '✅' : '❌'}</span>
+                                    <span>LLM 处理</span>
+                                </div>
+                                ${data.keyword_matched ? `
+                                    <div class="process-step active">
+                                        <span class="icon">🎯</span>
+                                        <span>关键词匹配</span>
+                                    </div>
+                                ` : ''}
+                                ${data.used_few_shot ? `
+                                    <div class="process-step active">
+                                        <span class="icon">📝</span>
+                                        <span>Few-Shot</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+
                     resultBox.innerHTML = `
                         <div class="question">💬 ${data.query}</div>
-                        <div class="answer">${data.answer}</div>
+                        ${processInfoHtml}
+                        <div class="answer">${parsedAnswer}</div>
                         <div class="meta">
                             <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
-                                ${data.knowledge_base_used ? '✅ 本地知识库' : '❌ 模型通用知识'}
+                                ${data.knowledge_base_used ? '✅ 使用知识库' : '❌ 未使用知识库'}
                             </span>
-                            ${data.used_direct_retrieval ? `
-                                <span class="badge success">
-                                    ⚡ 直接检索（未使用LLM）
-                                </span>
-                            ` : ''}
-                            ${data.used_few_shot ? `
+                            <span class="badge ${usedLLM ? 'primary' : 'info'}">
+                                ${usedLLM ? '🤖 使用 LLM' : '⚡ 直接检索'}
+                            </span>
+                            ${data.knowledge_base_used && data.retrieved_docs_count ? `
                                 <span class="badge info">
-                                    📝 Few-Shot（统一格式）
-                                </span>
-                            ` : ''}
-                            ${data.knowledge_base_used && !data.used_direct_retrieval ? `
-                                <span class="badge info">
-                                    📄 检索到 ${data.retrieved_docs_count} 个文档片段
+                                    📄 检索 ${data.retrieved_docs_count} 个片段
                                 </span>
                             ` : ''}
                         </div>
