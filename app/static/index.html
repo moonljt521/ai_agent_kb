@@ -565,8 +565,33 @@
             }
         }
 
-        // 添加答案气泡
-        function addAnswerBubble(data) {
+        // 创建空答案气泡（用于流式输出）
+        function createAnswerBubble() {
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'message-bubble';
+            messageBubble.innerHTML = `
+                <div class="message-answer">
+                    <div class="answer-bubble">
+                        <div class="answer" id="streamingAnswer"></div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageBubble);
+            scrollToBottom();
+            return messageBubble;
+        }
+
+        // 更新答案气泡内容
+        function updateAnswerBubble(messageBubble, text) {
+            const answerDiv = messageBubble.querySelector('#streamingAnswer');
+            if (answerDiv) {
+                answerDiv.textContent = text;
+                scrollToBottom();
+            }
+        }
+
+        // 完成答案气泡（添加元数据）
+        function finalizeAnswerBubble(messageBubble, data) {
             let sourcesHtml = '';
             if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
                 sourcesHtml = `
@@ -581,9 +606,6 @@
                     </div>
                 `;
             }
-
-            // 使用 Markdown 解析答案
-            const parsedAnswer = parseMarkdown(data.answer);
 
             // 判断是否使用了 LLM
             const usedLLM = !data.used_direct_retrieval;
@@ -617,31 +639,35 @@
                 </div>
             `;
 
-            const messageBubble = document.createElement('div');
-            messageBubble.className = 'message-bubble';
-            messageBubble.innerHTML = `
-                <div class="message-answer">
-                    <div class="answer-bubble">
-                        ${processInfoHtml}
-                        <div class="answer">${parsedAnswer}</div>
-                        <div class="meta">
-                            <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
-                                ${data.knowledge_base_used ? '✅ 使用知识库' : '❌ 未使用知识库'}
-                            </span>
-                            <span class="badge ${usedLLM ? 'primary' : 'info'}">
-                                ${usedLLM ? '🤖 使用 LLM' : '⚡ 直接检索'}
-                            </span>
-                            ${data.knowledge_base_used && data.retrieved_docs_count ? `
-                                <span class="badge info">
-                                    📄 检索 ${data.retrieved_docs_count} 个片段
-                                </span>
-                            ` : ''}
-                        </div>
-                        ${sourcesHtml}
-                    </div>
+            const answerBubble = messageBubble.querySelector('.answer-bubble');
+            const answerDiv = messageBubble.querySelector('#streamingAnswer');
+            
+            // 解析 Markdown
+            const parsedAnswer = parseMarkdown(answerDiv.textContent);
+            answerDiv.innerHTML = parsedAnswer;
+            answerDiv.removeAttribute('id');
+            
+            // 添加处理流程信息（插入到答案前面）
+            answerBubble.insertAdjacentHTML('afterbegin', processInfoHtml);
+            
+            // 添加元数据和来源
+            answerBubble.insertAdjacentHTML('beforeend', `
+                <div class="meta">
+                    <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
+                        ${data.knowledge_base_used ? '✅ 使用知识库' : '❌ 未使用知识库'}
+                    </span>
+                    <span class="badge ${usedLLM ? 'primary' : 'info'}">
+                        ${usedLLM ? '🤖 使用 LLM' : '⚡ 直接检索'}
+                    </span>
+                    ${data.knowledge_base_used && data.retrieved_docs_count ? `
+                        <span class="badge info">
+                            📄 检索 ${data.retrieved_docs_count} 个片段
+                        </span>
+                    ` : ''}
                 </div>
-            `;
-            chatMessages.appendChild(messageBubble);
+                ${sourcesHtml}
+            `);
+            
             scrollToBottom();
         }
 
@@ -683,23 +709,51 @@
             submitBtn.textContent = '思考中...';
             queryInput.value = '';
             
-            // 显示加载状态
-            addLoadingBubble();
+            // 创建答案气泡
+            const answerBubble = createAnswerBubble();
+            let fullText = '';
 
             try {
                 const response = await fetch(`/chat?query=${encodeURIComponent(query)}`);
-                const data = await response.json();
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
 
-                // 移除加载气泡
-                removeLoadingBubble();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                if (data.error) {
-                    addErrorBubble(data.error);
-                } else {
-                    addAnswerBubble(data);
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.slice(6);
+                            try {
+                                const data = JSON.parse(jsonStr);
+                                
+                                if (data.type === 'text') {
+                                    // 流式文本
+                                    fullText += data.content;
+                                    updateAnswerBubble(answerBubble, fullText);
+                                } else if (data.type === 'metadata') {
+                                    // 元数据
+                                    finalizeAnswerBubble(answerBubble, data);
+                                } else if (data.type === 'error') {
+                                    // 错误
+                                    answerBubble.remove();
+                                    addErrorBubble(data.error);
+                                } else if (data.type === 'done') {
+                                    // 完成
+                                    console.log('Stream completed');
+                                }
+                            } catch (e) {
+                                console.error('Parse error:', e);
+                            }
+                        }
+                    }
                 }
             } catch (error) {
-                removeLoadingBubble();
+                answerBubble.remove();
                 addErrorBubble(error.message);
             } finally {
                 // 恢复输入

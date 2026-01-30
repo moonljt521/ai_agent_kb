@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from app.core.agent import AgentManager
 from dotenv import load_dotenv
 import os
+import json
+import asyncio
 
 load_dotenv()
 
@@ -24,37 +26,53 @@ async def root():
 @app.get("/chat")
 async def chat(query: str, book: str = None):
     """
-    聊天接口
+    流式聊天接口
     
     参数:
         query: 用户问题
         book: 可选，限定检索的书名（如 "红楼梦"）
     """
-    try:
-        # 如果指定了书名，传递给 agent
-        if book:
-            # 临时修改 run_simple_rag 调用
-            answer = agent_manager.run_simple_rag(query, keyword_matched=False, book_filter=book)
-        else:
-            answer = agent_manager.run(query)
-        
-        retrieval_info = agent_manager.get_last_retrieval_info()
-        
-        return {
-            "query": query,
-            "answer": answer,
-            "book_filter": book,  # 新增：返回书名过滤信息
-            "knowledge_base_used": retrieval_info["used_knowledge_base"],
-            "used_direct_retrieval": retrieval_info["used_direct_retrieval"],
-            "used_few_shot": retrieval_info["used_few_shot"],
-            "keyword_matched": retrieval_info["keyword_matched"],
-            "retrieved_docs_count": retrieval_info["retrieved_docs_count"],
-            "sources": retrieval_info["sources"],
-            "data_source": "本地知识库（直接检索）" if retrieval_info["used_direct_retrieval"] 
-                          else ("本地知识库" if retrieval_info["used_knowledge_base"] else "模型通用知识")
-        }
-    except Exception as e:
-        return {"query": query, "error": str(e)}
+    async def generate():
+        try:
+            # 如果指定了书名，传递给 agent
+            if book:
+                answer = agent_manager.run_simple_rag_stream(query, keyword_matched=False, book_filter=book)
+            else:
+                answer = agent_manager.run_stream(query)
+            
+            # 流式输出答案
+            full_answer = ""
+            for chunk in answer:
+                full_answer += chunk
+                # 发送文本块
+                yield f"data: {json.dumps({'type': 'text', 'content': chunk}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.01)  # 控制输出速度
+            
+            # 获取检索信息
+            retrieval_info = agent_manager.get_last_retrieval_info()
+            
+            # 发送元数据
+            metadata = {
+                "type": "metadata",
+                "query": query,
+                "book_filter": book,
+                "knowledge_base_used": retrieval_info["used_knowledge_base"],
+                "used_direct_retrieval": retrieval_info["used_direct_retrieval"],
+                "used_few_shot": retrieval_info["used_few_shot"],
+                "keyword_matched": retrieval_info["keyword_matched"],
+                "retrieved_docs_count": retrieval_info["retrieved_docs_count"],
+                "sources": retrieval_info["sources"]
+            }
+            yield f"data: {json.dumps(metadata, ensure_ascii=False)}\n\n"
+            
+            # 发送结束标记
+            yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
+            
+        except Exception as e:
+            error_data = {"type": "error", "error": str(e)}
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 @app.get("/ingest")
 async def ingest_docs():

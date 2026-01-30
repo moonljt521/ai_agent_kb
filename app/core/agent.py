@@ -144,6 +144,84 @@ class AgentManager:
         response = self.llm.invoke(messages)
         
         return response.content
+    
+    def run_simple_rag_stream(self, query: str, keyword_matched=False, book_filter=None):
+        """
+        简化的 RAG 实现（流式版本）
+        
+        参数:
+            query: 用户查询
+            keyword_matched: 是否命中关键词（用于优化检索策略）
+            book_filter: 书名过滤（如 "红楼梦"），只检索指定书籍
+        
+        返回:
+            生成器，逐个返回文本块
+        """
+        # 重置状态
+        self.last_retrieved_docs = []
+        self.used_knowledge_base = False
+        self.used_few_shot = False
+        self.keyword_matched = keyword_matched
+        
+        # 1. 检索相关文档
+        k = 8 if keyword_matched else 5
+        
+        if book_filter:
+            print(f"📚 限定检索范围：{book_filter}")
+            docs = self.rag.search_by_book(query, book_filter, k=k)
+        else:
+            retriever = self.rag.get_retriever(k=k)
+            docs = retriever.invoke(query)
+        
+        self.last_retrieved_docs = docs
+        
+        if keyword_matched:
+            print(f"🎯 命中关键词，使用增强检索（k={k}）")
+        
+        # 2. 构建提示词
+        if docs:
+            self.used_knowledge_base = True
+            context = "\n\n".join([doc.page_content for doc in docs])
+            
+            if self.few_shot_manager:
+                self.used_few_shot = True
+                prompt = self.few_shot_manager.build_few_shot_prompt(query, context)
+            else:
+                prompt = f"""你是一个智能助手。请基于以下知识库内容回答用户的问题。
+
+知识库内容：
+{context}
+
+用户问题：{query}
+
+请基于上述知识库内容回答问题。如果知识库内容不足以回答问题，可以结合你的通用知识补充。"""
+        else:
+            prompt = f"""你是一个智能助手。
+
+用户问题：{query}
+
+请回答用户的问题。"""
+        
+        # 3. 流式调用 LLM
+        messages = [HumanMessage(content=prompt)]
+        for chunk in self.llm.stream(messages):
+            if hasattr(chunk, 'content') and chunk.content:
+                yield chunk.content
+    
+    def run_stream(self, query: str):
+        """流式运行（入口方法）"""
+        # 检查是否启用直接检索
+        if self.enable_direct_retrieval:
+            should_direct, reason = self.keyword_matcher.should_use_direct_retrieval(query)
+            
+            if should_direct:
+                print(f"🎯 {reason}")
+                return self.run_simple_rag_stream(query, keyword_matched=True)
+            else:
+                print(f"🤖 {reason}")
+        
+        # 未命中关键词或未启用直接检索
+        return self.run_simple_rag_stream(query, keyword_matched=False)
 
     def direct_retrieval(self, query: str) -> str:
         """
