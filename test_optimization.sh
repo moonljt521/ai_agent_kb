@@ -26,10 +26,10 @@ echo "正在启动服务..."
 echo ""
 
 # 检查端口是否被占用
-if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
-    echo "⚠️  端口 8000 已被占用"
+if lsof -Pi :8888 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo "⚠️  端口 8888 已被占用"
     echo "   请先停止现有服务，或使用浏览器访问："
-    echo "   http://127.0.0.1:8000"
+    echo "   http://127.0.0.1:8888"
     echo ""
 else
     echo "启动服务中..."
@@ -40,7 +40,7 @@ fi
 # 测试说明
 echo "3️⃣  测试步骤"
 echo "----------------------------------------"
-echo "访问：http://127.0.0.1:8000"
+echo "访问：http://127.0.0.1:8888"
 echo ""
 echo "测试 1：命中关键词"
 echo "  查询：诸葛亮"
@@ -67,11 +67,11 @@ echo "----------------------------------------"
 echo "测试命令："
 echo ""
 echo "# 命中关键词"
-echo "curl 'http://127.0.0.1:8000/chat?query=诸葛亮' | jq '.keyword_matched'"
+echo "curl 'http://127.0.0.1:8888/chat?query=诸葛亮' | jq '.keyword_matched'"
 echo "# 预期：true"
 echo ""
 echo "# 未命中关键词"
-echo "curl 'http://127.0.0.1:8000/chat?query=潘巧云' | jq '.keyword_matched'"
+echo "curl 'http://127.0.0.1:8888/chat?query=潘巧云' | jq '.keyword_matched'"
 echo "# 预期：false"
 echo ""
 

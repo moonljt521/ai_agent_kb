@@ -30,8 +30,8 @@ fi
 echo "🚀 启动 Web 服务..."
 echo ""
 echo "访问地址："
-echo "  👉 http://127.0.0.1:8000"
-echo "  👉 http://localhost:8000"
+echo "  👉 http://127.0.0.1:8888"
+echo "  👉 http://localhost:8888"
 echo ""
 echo "按 Ctrl+C 停止服务"
 echo ""
@@ -39,4 +39,4 @@ echo "=========================================="
 echo ""
 
 # 启动服务
-venv/bin/python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+venv/bin/python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8888
