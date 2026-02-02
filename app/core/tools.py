@@ -7,6 +7,8 @@ from langchain_core.tools import tool
 from datetime import datetime
 import math
 import re
+from typing import Optional
+import os
 
 
 @tool
@@ -382,6 +384,132 @@ def query_character_relationship(char1: str, char2: str, book_name: str = "") ->
         return f"查询人物关系时出错：{str(e)}"
 
 
+@tool
+def generate_id_photo(
+    image_path: str,
+    size: str = "1寸",
+    background: str = "白色",
+    remove_background: bool = True
+) -> str:
+    """
+    生成证件照。用户上传照片后，可以生成指定尺寸和背景颜色的证件照。
+    
+    适用场景：
+    - 用户要求生成证件照
+    - 用户提到"1寸"、"2寸"等尺寸
+    - 用户要求更换背景颜色
+    
+    参数：
+    - image_path: 上传的图片路径
+    - size: 证件照尺寸，支持：1寸、小1寸、2寸、小2寸、大1寸、护照、身份证、驾驶证、社保卡、教师资格证
+    - background: 背景颜色，支持：白色、蓝色、红色、浅蓝
+    - remove_background: 是否自动移除原背景（默认 True）
+    
+    返回：生成的证件照信息和下载链接
+    
+    示例：
+    - generate_id_photo("photo.jpg", "1寸", "白色") -> "已生成1寸白底证件照..."
+    - generate_id_photo("photo.jpg", "2寸", "蓝色") -> "已生成2寸蓝底证件照..."
+    """
+    from app.core.id_photo import IDPhotoGenerator
+    from PIL import Image
+    
+    try:
+        print("\n" + "="*80)
+        print("📸 证件照生成工具")
+        print("="*80)
+        print(f"📝 生成参数：")
+        print(f"   - 图片路径: {image_path}")
+        print(f"   - 尺寸: {size}")
+        print(f"   - 背景: {background}")
+        print(f"   - 移除背景: {remove_background}")
+        print()
+        
+        # 检查文件是否存在
+        if not os.path.exists(image_path):
+            return f"❌ 错误：找不到图片文件 {image_path}"
+        
+        # 加载图片
+        print(f"📂 加载图片...")
+        input_image = Image.open(image_path)
+        print(f"✅ 图片加载成功，尺寸: {input_image.size}")
+        print()
+        
+        # 初始化生成器
+        generator = IDPhotoGenerator()
+        
+        # 生成证件照
+        result_image, filepath = generator.generate(
+            input_image,
+            size_name=size,
+            background_color=background,
+            remove_bg=remove_background
+        )
+        
+        # 获取相对路径（用于 Web 访问）
+        relative_path = filepath.replace("app/static/", "/static/")
+        
+        print()
+        print("🎉 证件照生成完成！")
+        print("="*80 + "\n")
+        
+        # 返回结果
+        result = f"""✅ 已成功生成 {size} {background}底证件照！
+
+📏 尺寸信息：
+- 规格：{size}
+- 像素：{result_image.size[0]} x {result_image.size[1]} px
+- 背景：{background}
+
+📥 下载链接：
+{relative_path}
+
+💡 提示：您可以继续要求生成其他尺寸或背景颜色的证件照。
+"""
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ 生成失败: {str(e)}")
+        print("="*80 + "\n")
+        return f"❌ 生成证件照时出错：{str(e)}"
+
+
+@tool
+def list_id_photo_specs() -> str:
+    """
+    列出所有支持的证件照规格和背景颜色。
+    
+    返回：支持的尺寸和颜色列表
+    """
+    from app.core.id_photo import IDPhotoGenerator
+    
+    specs = """📸 证件照生成规格
+
+### 支持的尺寸：
+"""
+    
+    for size_name, (width, height) in IDPhotoGenerator.SIZES.items():
+        specs += f"- **{size_name}**: {width} x {height} px\n"
+    
+    specs += "\n### 支持的背景颜色：\n"
+    
+    for color_name in IDPhotoGenerator.BACKGROUND_COLORS.keys():
+        specs += f"- {color_name}\n"
+    
+    specs += """
+### 使用方法：
+1. 上传您的照片
+2. 告诉我需要的尺寸（如"1寸"、"2寸"）
+3. 选择背景颜色（如"白色"、"蓝色"）
+4. 系统会自动生成并提供下载链接
+
+💡 提示：系统会自动检测人脸位置并进行智能裁剪。
+"""
+    
+    return specs
+
+
 # 导出所有工具
 def get_all_tools():
     """获取所有可用的工具"""
@@ -393,7 +521,9 @@ def get_all_tools():
         compare_numbers,
         list_four_classics,
         get_book_info,
-        query_character_relationship,  # 新增
+        query_character_relationship,
+        generate_id_photo,  # 新增
+        list_id_photo_specs,  # 新增
     ]
 
 

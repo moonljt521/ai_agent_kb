@@ -10,3 +10,4 @@ chromadb
 pypdf
 ebooklib  # 用于解析 EPUB 文件
 # unstructured  # 暂时注释，避免编译问题
+chainlit
