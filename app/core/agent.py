@@ -208,6 +208,134 @@ class AgentManager:
             if hasattr(chunk, 'content') and chunk.content:
                 yield chunk.content
     
+    def run_simple_rag_stream_with_context(self, query: str, history: list = None, keyword_matched=False, book_filter=None):
+        """
+        支持上下文的 RAG 流式实现
+        
+        参数:
+            query: 用户查询
+            history: 对话历史
+            keyword_matched: 是否命中关键词
+            book_filter: 书名过滤
+        
+        返回:
+            生成器，逐个返回文本块
+        """
+        # 重置状态
+        self.last_retrieved_docs = []
+        self.used_knowledge_base = False
+        self.used_few_shot = False
+        self.keyword_matched = keyword_matched
+        
+        # 1. 构建增强查询（用于检索）
+        enhanced_query = self._build_context_query(history, query)
+        
+        # 2. 检索相关文档
+        k = 8 if keyword_matched else 5
+        
+        if book_filter:
+            print(f"📚 限定检索范围：{book_filter}")
+            docs = self.rag.search_by_book(enhanced_query, book_filter, k=k)
+        else:
+            retriever = self.rag.get_retriever(k=k)
+            docs = retriever.invoke(enhanced_query)
+        
+        self.last_retrieved_docs = docs
+        
+        if keyword_matched:
+            print(f"🎯 命中关键词，使用增强检索（k={k}）")
+        
+        if history and len(history) > 0:
+            print(f"💬 使用对话历史（{len(history)} 条消息）")
+        
+        # 3. 构建完整提示词（包含历史和检索结果）
+        if docs:
+            self.used_knowledge_base = True
+            doc_context = "\n\n".join([doc.page_content for doc in docs])
+            
+            prompt = f"""你是一个智能助手。请基于对话历史和知识库内容回答用户的问题。
+
+{self._format_history(history)}
+
+知识库内容：
+{doc_context}
+
+当前问题：{query}
+
+请基于上述对话历史和知识库内容回答问题。如果问题中有代词（如"他"、"她"、"它"），请根据对话历史理解指代对象。"""
+        else:
+            prompt = f"""你是一个智能助手。
+
+{self._format_history(history)}
+
+当前问题：{query}
+
+请基于对话历史回答问题。如果问题中有代词，请根据对话历史理解指代对象。"""
+        
+        # 4. 流式调用 LLM
+        messages = [HumanMessage(content=prompt)]
+        for chunk in self.llm.stream(messages):
+            if hasattr(chunk, 'content') and chunk.content:
+                yield chunk.content
+    
+    def _build_context_query(self, history: list, current_query: str) -> str:
+        """
+        构建包含上下文的查询（用于检索）
+        
+        例如：
+        历史：Q: 贾宝玉是谁？ A: 贾宝玉是...
+        当前：他的妻子是谁？
+        增强：贾宝玉的妻子是谁？
+        """
+        if not history or len(history) == 0:
+            return current_query
+        
+        # 简单策略：如果当前问题包含代词，尝试从历史中提取主语
+        pronouns = ['他', '她', '它', '这个', '那个', '这', '那', '其']
+        has_pronoun = any(p in current_query for p in pronouns)
+        
+        if has_pronoun and len(history) >= 2:
+            # 获取最近一轮的用户问题
+            last_user_msg = None
+            for msg in reversed(history):
+                if msg.get('role') == 'user':
+                    last_user_msg = msg.get('content', '')
+                    break
+            
+            if last_user_msg:
+                # 简单拼接（更复杂的实现可以使用 NLP 工具）
+                return f"{last_user_msg} {current_query}"
+        
+        return current_query
+    
+    def _format_history(self, history: list) -> str:
+        """格式化对话历史"""
+        if not history or len(history) == 0:
+            return "对话历史：（无）"
+        
+        formatted = ["对话历史："]
+        for msg in history[-10:]:  # 最多显示最近 10 条
+            role = "用户" if msg.get('role') == 'user' else "助手"
+            content = msg.get('content', '')
+            formatted.append(f"{role}：{content}")
+        
+        return "\n".join(formatted)
+    
+    def run_stream_with_context(self, query: str, history: list = None):
+        """流式运行（入口方法，支持上下文）"""
+        # 检查是否启用直接检索
+        if self.enable_direct_retrieval:
+            should_direct, reason = self.keyword_matcher.should_use_direct_retrieval(query)
+            
+            if should_direct:
+                print(f"🎯 {reason}")
+                return self.run_simple_rag_stream_with_context(query, history=history, keyword_matched=True)
+            else:
+                print(f"🤖 {reason}")
+        
+        # 未命中关键词或未启用直接检索
+        return self.run_simple_rag_stream_with_context(query, history=history, keyword_matched=False)
+    
     def run_stream(self, query: str):
         """流式运行（入口方法）"""
         # 检查是否启用直接检索

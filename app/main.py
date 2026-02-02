@@ -3,6 +3,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from app.core.agent import AgentManager
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from typing import List, Optional
 import os
 import json
 import asyncio
@@ -18,15 +20,86 @@ agent_manager = AgentManager(enable_direct_retrieval=enable_direct_retrieval)
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+# 定义请求模型
+class Message(BaseModel):
+    role: str  # 'user' 或 'assistant'
+    content: str
+    timestamp: Optional[int] = None
+    book: Optional[str] = None
+
+class ChatRequest(BaseModel):
+    query: str
+    book: Optional[str] = None
+    history: Optional[List[Message]] = []
+
 @app.get("/")
 async def root():
     """返回网页界面"""
     return FileResponse("app/static/index.html")
 
-@app.get("/chat")
-async def chat(query: str, book: str = None):
+@app.post("/chat")
+async def chat_post(request: ChatRequest):
     """
-    流式聊天接口
+    流式聊天接口（支持多轮对话）
+    
+    参数:
+        query: 用户问题
+        book: 可选，限定检索的书名
+        history: 对话历史（最近 5 轮）
+    """
+    async def generate():
+        try:
+            query = request.query
+            book = request.book
+            history = [msg.dict() for msg in request.history] if request.history else []
+            
+            # 使用历史上下文生成答案
+            if book:
+                answer = agent_manager.run_simple_rag_stream_with_context(
+                    query, history=history, keyword_matched=False, book_filter=book
+                )
+            else:
+                answer = agent_manager.run_stream_with_context(query, history=history)
+            
+            # 流式输出答案
+            full_answer = ""
+            for chunk in answer:
+                full_answer += chunk
+                # 发送文本块
+                yield f"data: {json.dumps({'type': 'text', 'content': chunk}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.01)
+            
+            # 获取检索信息
+            retrieval_info = agent_manager.get_last_retrieval_info()
+            
+            # 发送元数据
+            metadata = {
+                "type": "metadata",
+                "query": query,
+                "book_filter": book,
+                "has_context": len(history) > 0,
+                "knowledge_base_used": retrieval_info["used_knowledge_base"],
+                "used_direct_retrieval": retrieval_info["used_direct_retrieval"],
+                "used_few_shot": retrieval_info["used_few_shot"],
+                "keyword_matched": retrieval_info["keyword_matched"],
+                "retrieved_docs_count": retrieval_info["retrieved_docs_count"],
+                "sources": retrieval_info["sources"]
+            }
+            yield f"data: {json.dumps(metadata, ensure_ascii=False)}\n\n"
+            
+            # 发送结束标记
+            yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
+            
+        except Exception as e:
+            error_data = {"type": "error", "error": str(e)}
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@app.get("/chat")
+async def chat_get(query: str, book: str = None):
+    """
+    流式聊天接口（GET 方法，兼容旧版本）
     
     参数:
         query: 用户问题
@@ -56,6 +129,7 @@ async def chat(query: str, book: str = None):
                 "type": "metadata",
                 "query": query,
                 "book_filter": book,
+                "has_context": False,
                 "knowledge_base_used": retrieval_info["used_knowledge_base"],
                 "used_direct_retrieval": retrieval_info["used_direct_retrieval"],
                 "used_few_shot": retrieval_info["used_few_shot"],

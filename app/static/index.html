@@ -228,6 +228,18 @@
             font-weight: 500;
         }
 
+        .context-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
         .input-group {
             display: flex;
             gap: 12px;
@@ -813,6 +825,27 @@
         const bookTag = document.getElementById('bookTag');
         const bookTagText = document.getElementById('bookTagText');
 
+        // 对话历史管理
+        let conversationHistory = [];
+        const MAX_HISTORY = 5; // 保留最近 5 轮对话
+
+        // 添加消息到历史
+        function addToHistory(role, content, book = null) {
+            conversationHistory.push({
+                role: role,
+                content: content,
+                timestamp: Date.now(),
+                book: book
+            });
+            
+            // 只保留最近 5 轮（10 条消息）
+            if (conversationHistory.length > MAX_HISTORY * 2) {
+                conversationHistory = conversationHistory.slice(-MAX_HISTORY * 2);
+            }
+            
+            console.log(`对话历史：${conversationHistory.length} 条消息`);
+        }
+
         // 书籍选择变化时更新标签
         bookSelect.addEventListener('change', () => {
             const selectedBook = bookSelect.value;
@@ -881,26 +914,39 @@
         submitBtn.addEventListener('click', submitQuery);
 
         // 添加问题气泡
-        function addQuestionBubble(question, selectedBook) {
+        function addQuestionBubble(question, selectedBook, hasContext) {
             const messageBubble = document.createElement('div');
             messageBubble.className = 'message-bubble';
             messageBubble.dataset.timestamp = Date.now(); // 记录开始时间
             messageBubble.dataset.question = question; // 保存问题文本
             messageBubble.dataset.book = selectedBook || ''; // 保存书籍选择
             
+            // 上下文标记
+            const contextBadge = hasContext ? `
+                <span class="context-badge">
+                    <span>🔗</span>
+                    <span>续问</span>
+                </span>
+            ` : '';
+            
             // 如果选择了书籍，显示书籍标签
             const bookTagHtml = selectedBook ? `
-                <div style="margin-bottom: 5px;">
-                    <span class="selected-book-tag">
-                        <span>📚 ${selectedBook}</span>
-                    </span>
+                <span class="selected-book-tag">
+                    <span>📚 ${selectedBook}</span>
+                </span>
+            ` : '';
+            
+            const badges = (contextBadge || bookTagHtml) ? `
+                <div style="margin-bottom: 5px; display: flex; gap: 5px;">
+                    ${contextBadge}
+                    ${bookTagHtml}
                 </div>
             ` : '';
             
             messageBubble.innerHTML = `
                 <div class="message-question">
                     <div class="question-bubble">
-                        ${bookTagHtml}
+                        ${badges}
                         ${question}
                     </div>
                 </div>
@@ -1111,11 +1157,13 @@
                 // 清空所有消息
                 chatMessages.innerHTML = '';
                 
+                // 清空对话历史
+                conversationHistory = [];
+                
                 // 恢复透明度
                 chatMessages.style.opacity = '1';
                 
-                // 显示提示
-                console.log('对话已清空');
+                console.log('对话已清空，历史已重置');
             }, 300);
         }
 
@@ -1289,10 +1337,16 @@
 
             // 获取选中的书籍
             const selectedBook = bookSelect.value;
+            
+            // 判断是否有上下文
+            const hasContext = conversationHistory.length > 0;
 
             // 添加问题气泡并记录开始时间
-            const questionBubble = addQuestionBubble(query, selectedBook);
+            const questionBubble = addQuestionBubble(query, selectedBook, hasContext);
             const startTime = Date.now();
+            
+            // 添加到历史
+            addToHistory('user', query, selectedBook);
 
             // 禁用输入
             submitBtn.disabled = true;
@@ -1304,13 +1358,21 @@
             let fullText = '';
 
             try {
-                // 构建请求 URL，如果选择了书籍则添加 book 参数
-                let url = `/chat?query=${encodeURIComponent(query)}`;
-                if (selectedBook) {
-                    url += `&book=${encodeURIComponent(selectedBook)}`;
-                }
+                // 构建请求数据
+                const requestData = {
+                    query: query,
+                    book: selectedBook || null,
+                    history: conversationHistory
+                };
 
-                const response = await fetch(url);
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
 
@@ -1334,6 +1396,9 @@
                                 } else if (data.type === 'metadata') {
                                     // 元数据（传递开始时间）
                                     finalizeAnswerBubble(answerBubble, data, startTime);
+                                    
+                                    // 添加助手回复到历史
+                                    addToHistory('assistant', fullText);
                                 } else if (data.type === 'error') {
                                     // 错误
                                     answerBubble.remove();
