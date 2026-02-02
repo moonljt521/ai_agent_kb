@@ -1,10 +1,11 @@
 import os
-from langchain.agents import create_react_agent, AgentExecutor
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 from app.core.rag import RAGManager
+from app.core.keyword_matcher import KeywordMatcher
 from app.core.tools import get_all_tools
 from dotenv import load_dotenv
 
@@ -58,22 +59,20 @@ class AgentManager:
             print(f"✅ 使用阿里云模型: {os.getenv('LLM_MODEL', 'qwen-plus')}")
         
         self.rag = RAGManager()
+        self.keyword_matcher = KeywordMatcher()
         
         # 新增：记忆系统（保留最近5轮对话）
         self.memory = SimpleMemory(k=5)
         
         # 记录状态
-        self.last_call_info = {
-            "mode": None,
-            "llm_called": False,
-            "tools_used": [],
-            "keyword_matched": None,
-        }
         self.last_retrieved_docs = []
         self.used_knowledge_base = False
         self.used_direct_retrieval = False
         
         # 打印关键词统计
+        stats = self.keyword_matcher.get_statistics()
+        print(f"📚 已加载 {stats['总关键词数']} 个关键词")
+        print("💡 命中关键词将直接检索，节省 LLM 调用")
         print(f"🧠 记忆系统已启用（保留最近 5 轮对话）")
 
     def create_agent(self, chat_history=None):
@@ -249,14 +248,6 @@ class AgentManager:
 - 结合对话历史理解问题中的代词指代"""
         
         # 4. 调用 LLM
-        
-        # 打印发送给 LLM 的 prompt
-        print("\n" + "="*80)
-        print("📤 发送给 LLM 的 Prompt (Simple RAG)：")
-        print("="*80)
-        print(prompt)
-        print("="*80 + "\n")
-        
         messages = [HumanMessage(content=prompt)]
         response = self.llm.invoke(messages)
         
@@ -353,64 +344,39 @@ class AgentManager:
         return response.content
 
     def run(self, query: str):
-        # 重置调用信息
-        self.last_call_info = {
-            "mode": None,
-            "llm_called": False,
-            "tools_used": [],
-            "keyword_matched": None,
-        }
+        # 先检查是否命中关键词
+        should_direct, reason = self.keyword_matcher.should_use_direct_retrieval(query)
         
-        # Groq 使用简化的 RAG，阿里云使用 Agent
-        if self.provider == "groq":
-            print("🤖 使用 Groq 简化 RAG 模式")
-            self.last_call_info["mode"] = "simple_rag"
-            self.last_call_info["llm_called"] = True
-            answer = self.run_simple_rag(query)
+        if should_direct:
+            print(f"🎯 {reason}")
+            answer = self.direct_retrieval(query)
         else:
-            print("🤖 使用 Agent 推理模式")
-            self.last_call_info["mode"] = "agent"
-            self.last_call_info["llm_called"] = True
-            
-            # 重置状态
-            self.last_retrieved_docs = []
-            self.used_knowledge_base = False
-            
-            # 获取对话历史
-            memory_vars = self.memory.load_memory_variables({})
-            chat_history = memory_vars.get("chat_history", [])
-            
-            # 创建 Agent（传入对话历史）
-            graph = self.create_agent(chat_history=chat_history)
-            
-            # 调用图，输入消息列表
-            
-            inputs = {"messages": [{"role": "user", "content": query}]}
-            
-            # 打印发送给 LLM 的 prompt
-            print("\n" + "="*80)
-            print("📤 发送给 LLM 的消息：")
-            print("="*80)
-            for msg in inputs["messages"]:
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                print(f"\n[{role.upper()}]")
-                print(content)
-            if chat_history:
-                print(f"\n[对话历史] {len(chat_history)} 条消息")
-                for msg in chat_history[-4:]:
-                    role = "用户" if msg.__class__.__name__ == "HumanMessage" else "AI"
-                    content_preview = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
-                    print(f"  - {role}: {content_preview}")
-            print("="*80 + "\n")
-            
-            result = graph.invoke(inputs)
-            # 获取最后一条 AI 消息的内容
-            messages = result.get("messages", [])
-            if messages:
-                answer = messages[-1].content
+            print(f"🤖 {reason}")
+            # Groq 使用简化的 RAG，阿里云使用 Agent
+            if self.provider == "groq":
+                answer = self.run_simple_rag(query)
             else:
-                answer = "未能生成回复。"
+                # 重置状态
+                self.last_retrieved_docs = []
+                self.used_knowledge_base = False
+                self.used_direct_retrieval = False
+                
+                # 获取对话历史
+                memory_vars = self.memory.load_memory_variables({})
+                chat_history = memory_vars.get("chat_history", [])
+                
+                # 创建 Agent（传入对话历史）
+                graph = self.create_agent(chat_history=chat_history)
+                
+                # 调用图，输入消息列表
+                inputs = {"messages": [{"role": "user", "content": query}]}
+                result = graph.invoke(inputs)
+                # 获取最后一条 AI 消息的内容
+                messages = result.get("messages", [])
+                if messages:
+                    answer = messages[-1].content
+                else:
+                    answer = "未能生成回复。"
         
         # 保存到记忆
         self.memory.save_context(
@@ -424,7 +390,7 @@ class AgentManager:
         print(f"💾 已保存到记忆，当前共 {msg_count} 条消息")
         
         return answer
-
+    
     def get_chat_history(self):
         """获取对话历史"""
         memory_vars = self.memory.load_memory_variables({})

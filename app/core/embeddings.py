@@ -43,6 +43,11 @@ def get_embeddings():
     
     elif provider == "bge":
         from langchain_community.embeddings import HuggingFaceEmbeddings
+        
+        # 强制使用 safetensors 格式
+        os.environ['SAFETENSORS_FAST_GPU'] = '1'
+        os.environ['HF_HUB_ENABLE_HF_TRANSFER'] = '1'
+        
         model_name = os.getenv("BGE_MODEL", "BAAI/bge-large-zh-v1.5")
         device = os.getenv("DEVICE", "cpu")
         
@@ -71,7 +76,10 @@ def get_embeddings():
         
         return HuggingFaceEmbeddings(
             model_name=model_name,
-            model_kwargs={'device': device},
+            model_kwargs={
+                'device': device,
+                'trust_remote_code': True
+            },
             encode_kwargs={'normalize_embeddings': True}
         )
     
@@ -89,7 +97,10 @@ def get_embeddings():
         
         return HuggingFaceEmbeddings(
             model_name="moka-ai/m3e-base",
-            model_kwargs={'device': device},
+            model_kwargs={
+                'device': device,
+                'trust_remote_code': True
+            },
             encode_kwargs={'normalize_embeddings': True}
         )
     
@@ -107,7 +118,10 @@ def get_embeddings():
         
         return HuggingFaceEmbeddings(
             model_name="shibing624/text2vec-base-chinese",
-            model_kwargs={'device': device},
+            model_kwargs={
+                'device': device,
+                'trust_remote_code': True
+            },
             encode_kwargs={'normalize_embeddings': True}
         )
     

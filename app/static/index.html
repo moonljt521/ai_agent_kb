@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>四大名著知识有问必答</title>
+    <!-- 引入 Markdown 渲染库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -15,95 +17,87 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.1);
         }
 
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 2em;
+            margin-bottom: 8px;
         }
 
         .header p {
-            font-size: 1.1em;
+            font-size: 0.95em;
             opacity: 0.9;
         }
 
-        .chat-box {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            padding: 30px;
-            margin-bottom: 20px;
-        }
-
-        .input-group {
+        .model-info {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 0.85em;
         }
 
-        #queryInput {
-            flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+        .model-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
         }
 
-        #queryInput:focus {
-            outline: none;
-            border-color: #667eea;
+        .model-label {
+            opacity: 0.8;
         }
 
-        #submitBtn {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
+        .model-value {
             font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        #submitBtn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        .model-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            background: rgba(255, 255, 255, 0.3);
+            margin-top: 3px;
         }
 
-        #submitBtn:active {
-            transform: translateY(0);
-        }
-
-        #submitBtn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .result-box {
-            background: #f8f9fa;
-            border-radius: 10px;
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
             padding: 20px;
-            margin-top: 20px;
-            display: none;
+            overflow: hidden;
         }
 
-        .result-box.show {
-            display: block;
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            display: flex;
+            gap: 15px;
             animation: fadeIn 0.3s;
         }
 
@@ -112,35 +106,67 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .question {
-            color: #667eea;
-            font-weight: bold;
-            margin-bottom: 10px;
-            font-size: 1.1em;
+        .message.user {
+            flex-direction: row-reverse;
         }
 
-        .answer {
-            color: #333;
-            line-height: 1.8;
-            margin-bottom: 15px;
-            white-space: pre-wrap;
-        }
-
-        .meta {
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             display: flex;
-            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message.assistant .message-avatar {
+            background: white;
+        }
+
+        .message-content {
+            flex: 1;
+            background: white;
+            border-radius: 15px;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 80%;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-text {
+            line-height: 1.6;
+        }
+
+        .message.user .message-text {
+            color: white;
+        }
+
+        .message-meta {
+            display: flex;
+            gap: 10px;
             flex-wrap: wrap;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
             font-weight: 500;
         }
 
@@ -159,171 +185,701 @@
             color: #856404;
         }
 
-        .loading {
-            text-align: center;
-            color: #667eea;
-            font-size: 1.1em;
-            padding: 20px;
-        }
-
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-
         .sources {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .sources h4 {
             color: #667eea;
-            margin-bottom: 10px;
-            font-size: 0.95em;
+            margin-bottom: 8px;
+            font-size: 0.9em;
         }
 
         .source-item {
-            background: white;
-            padding: 10px;
+            background: #f8f9fa;
+            padding: 8px;
             border-radius: 5px;
-            margin-bottom: 8px;
-            font-size: 0.9em;
+            margin-bottom: 6px;
+            font-size: 0.85em;
             border-left: 3px solid #667eea;
         }
 
         .source-item strong {
             color: #667eea;
         }
+
+        .loading-message {
+            display: flex;
+            gap: 15px;
+        }
+
+        .loading-content {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .input-container {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #queryInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        #queryInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #submitBtn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+
+        #submitBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #submitBtn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        #submitBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #clearBtn {
+            padding: 12px 20px;
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #clearBtn:hover {
+            background: #e0e0e0;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .example-questions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 500px;
+        }
+
+        .example-question {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .example-question:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Markdown 渲染样式 */
+        .message-text h1, .message-text h2, .message-text h3, .message-text h4 {
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .message-text h1 { font-size: 1.6em; }
+        .message-text h2 { font-size: 1.4em; }
+        .message-text h3 { font-size: 1.2em; }
+        .message-text h4 { font-size: 1.05em; }
+
+        .message-text strong {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .message-text em {
+            font-style: italic;
+            color: #555;
+        }
+
+        .message-text ul, .message-text ol {
+            margin-left: 20px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        .message-text li {
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+
+        .message-text p {
+            margin-bottom: 10px;
+        }
+
+        .message-text code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #d63384;
+        }
+
+        .message-text pre {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .message-text pre code {
+            background: none;
+            padding: 0;
+            color: #333;
+        }
+
+        .message-text blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 12px;
+            margin: 12px 0;
+            color: #555;
+            font-style: italic;
+        }
+
+        .message-text hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 15px 0;
+        }
+
+        .message-text a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .message-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* 滚动条样式 */
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 4px solid #f5c6cb;
+        }
+
+        /* 历史记录模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 700px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+
+        .close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .history-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .history-item.user {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+        }
+
+        .history-item.assistant {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .history-role {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .history-content {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        #historyBtn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        #historyBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📚 四大名著知识有问必答</h1>
-            <p>红楼梦 · 三国演义 · 西游记 · 水浒传</p>
+    <div class="header">
+        <h1>📚 四大名著知识有问必答</h1>
+        <p>红楼梦 · 三国演义 · 西游记 · 水浒传</p>
+        <div class="model-info" id="modelInfo">
+            <div class="model-item">
+                <span class="model-label">🤖 LLM 模型</span>
+                <span class="model-value" id="llmModel">加载中...</span>
+            </div>
+            <div class="model-item">
+                <span class="model-label">🔢 Embedding 模型</span>
+                <span class="model-value" id="embeddingModel">加载中...</span>
+                <span class="model-badge" id="embeddingBadge"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="messages-container" id="messagesContainer">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-state-icon">💬</div>
+                <h2>开始你的知识探索之旅</h2>
+                <p>问我任何关于四大名著的问题</p>
+                <div class="example-questions">
+                    <div class="example-question" onclick="askExample('贾宝玉是谁？')">
+                        💎 贾宝玉是谁？
+                    </div>
+                    <div class="example-question" onclick="askExample('林黛玉和薛宝钗有什么区别？')">
+                        🌸 林黛玉和薛宝钗有什么区别？
+                    </div>
+                    <div class="example-question" onclick="askExample('红楼梦的主要人物有哪些？')">
+                        👥 红楼梦的主要人物有哪些？
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="chat-box">
-            <div class="input-group">
-                <input 
-                    type="text" 
-                    id="queryInput" 
-                    placeholder="例如：贾宝玉是谁？诸葛亮的故事？孙悟空的师傅？" 
-                    autofocus
-                >
-                <button id="submitBtn">提问</button>
-            </div>
-
-            <div id="resultBox" class="result-box"></div>
+        <div class="input-container">
+            <button id="clearBtn" onclick="clearChat()">🗑️ 清空</button>
+            <button id="historyBtn" onclick="showHistory()" title="查看对话历史">📜 历史</button>
+            <input 
+                type="text" 
+                id="queryInput" 
+                placeholder="输入你的问题..." 
+                autofocus
+            >
+            <button id="submitBtn" onclick="submitQuery()">发送</button>
         </div>
     </div>
 
     <script>
+        const messagesContainer = document.getElementById('messagesContainer');
+        const emptyState = document.getElementById('emptyState');
         const queryInput = document.getElementById('queryInput');
         const submitBtn = document.getElementById('submitBtn');
-        const resultBox = document.getElementById('resultBox');
+        let messageCount = 0;
+
+        // 页面加载时获取模型信息
+        async function loadModelInfo() {
+            try {
+                const response = await fetch('/model-info');
+                const data = await response.json();
+                
+                document.getElementById('llmModel').textContent = 
+                    `${data.llm.provider} ${data.llm.model}`;
+                
+                const embeddingText = data.embedding.model.split('/').pop() || data.embedding.model;
+                document.getElementById('embeddingModel').textContent = embeddingText;
+                
+                const badge = document.getElementById('embeddingBadge');
+                if (data.embedding.is_free && data.embedding.is_local) {
+                    badge.textContent = '💰 免费 · 📡 本地';
+                } else if (data.embedding.is_free) {
+                    badge.textContent = '💰 免费';
+                } else if (data.embedding.is_local) {
+                    badge.textContent = '📡 本地';
+                }
+            } catch (error) {
+                console.error('加载模型信息失败:', error);
+            }
+        }
+
+        loadModelInfo();
 
         // 回车提交
         queryInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 submitQuery();
             }
         });
 
-        // 点击提交
-        submitBtn.addEventListener('click', submitQuery);
+        // 点击示例问题
+        function askExample(question) {
+            queryInput.value = question;
+            submitQuery();
+        }
 
+        // 添加用户消息
+        function addUserMessage(text) {
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-avatar">👤</div>
+                <div class="message-content">
+                    <div class="message-text">${escapeHtml(text)}</div>
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // 添加加载消息
+        function addLoadingMessage() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-message';
+            loadingDiv.id = 'loadingMessage';
+            loadingDiv.innerHTML = `
+                <div class="message-avatar" style="background: white;">🤖</div>
+                <div class="loading-content">
+                    <div class="loading-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            messagesContainer.appendChild(loadingDiv);
+            scrollToBottom();
+        }
+
+        // 移除加载消息
+        function removeLoadingMessage() {
+            const loading = document.getElementById('loadingMessage');
+            if (loading) {
+                loading.remove();
+            }
+        }
+
+        // 添加助手消息
+        function addAssistantMessage(data) {
+            removeLoadingMessage();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            
+            let sourcesHtml = '';
+            if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
+                sourcesHtml = `
+                    <div class="sources">
+                        <h4>📚 引用来源：</h4>
+                        ${data.sources.map(source => `
+                            <div class="source-item">
+                                <strong>文档：</strong>${escapeHtml(source.source)} 
+                                <strong>页码：</strong>${escapeHtml(source.page)}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            const renderedAnswer = marked.parse(data.answer);
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="message-text">${renderedAnswer}</div>
+                    <div class="message-meta">
+                        <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
+                            ${data.knowledge_base_used ? '✅ 本地知识库' : '❌ 模型通用知识'}
+                        </span>
+                        ${data.used_direct_retrieval ? `
+                            <span class="badge success">
+                                ⚡ 直接检索
+                            </span>
+                        ` : ''}
+                        ${data.knowledge_base_used && !data.used_direct_retrieval ? `
+                            <span class="badge info">
+                                📄 ${data.retrieved_docs_count} 个文档片段
+                            </span>
+                        ` : ''}
+                    </div>
+                    ${sourcesHtml}
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // 添加错误消息
+        function addErrorMessage(error) {
+            removeLoadingMessage();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            messageDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="error-message">
+                        <strong>❌ 错误：</strong>${escapeHtml(error)}
+                    </div>
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // 提交问题
         async function submitQuery() {
             const query = queryInput.value.trim();
             
             if (!query) {
-                alert('请输入问题');
                 return;
             }
 
+            // 添加用户消息
+            addUserMessage(query);
+            queryInput.value = '';
+
             // 禁用输入
             submitBtn.disabled = true;
-            submitBtn.textContent = '思考中...';
-            
+            queryInput.disabled = true;
+
             // 显示加载状态
-            resultBox.className = 'result-box show';
-            resultBox.innerHTML = '<div class="loading">正在思考</div>';
+            addLoadingMessage();
 
             try {
                 const response = await fetch(`/chat?query=${encodeURIComponent(query)}`);
                 const data = await response.json();
 
                 if (data.error) {
-                    resultBox.innerHTML = `
-                        <div class="error">
-                            <strong>❌ 错误：</strong>${data.error}
-                        </div>
-                    `;
+                    addErrorMessage(data.error);
                 } else {
-                    let sourcesHtml = '';
-                    if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
-                        sourcesHtml = `
-                            <div class="sources">
-                                <h4>📚 引用来源：</h4>
-                                ${data.sources.map(source => `
-                                    <div class="source-item">
-                                        <strong>文档：</strong>${source.source} 
-                                        <strong>页码：</strong>${source.page}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
-                    }
-
-                    resultBox.innerHTML = `
-                        <div class="question">💬 ${data.query}</div>
-                        <div class="answer">${data.answer}</div>
-                        <div class="meta">
-                            <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
-                                ${data.knowledge_base_used ? '✅ 本地知识库' : '❌ 模型通用知识'}
-                            </span>
-                            ${data.used_direct_retrieval ? `
-                                <span class="badge success">
-                                    ⚡ 直接检索（未使用LLM）
-                                </span>
-                            ` : ''}
-                            ${data.knowledge_base_used && !data.used_direct_retrieval ? `
-                                <span class="badge info">
-                                    📄 检索到 ${data.retrieved_docs_count} 个文档片段
-                                </span>
-                            ` : ''}
-                        </div>
-                        ${sourcesHtml}
-                    `;
+                    addAssistantMessage(data);
                 }
             } catch (error) {
-                resultBox.innerHTML = `
-                    <div class="error">
-                        <strong>❌ 网络错误：</strong>${error.message}
-                    </div>
-                `;
+                addErrorMessage(`网络错误：${error.message}`);
             } finally {
                 // 恢复输入
                 submitBtn.disabled = false;
-                submitBtn.textContent = '提问';
-                queryInput.value = '';
+                queryInput.disabled = false;
                 queryInput.focus();
             }
+        }        // 清空对话
+        async function clearChat() {
+            if (confirm('确定要清空所有对话吗？这将清除对话记忆。')) {
+                // 调用后端 API 清空记忆
+                try {
+                    const response = await fetch('/memory/clear', { method: 'POST' });
+                    const data = await response.json();
+                    console.log('记忆已清空:', data);
+                } catch (error) {
+                    console.error('清空记忆失败:', error);
+                }
+                
+                // 清空界面
+                messagesContainer.innerHTML = `
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon">💬</div>
+                        <h2>开始你的知识探索之旅</h2>
+                        <p>问我任何关于四大名著的问题</p>
+                        <div class="example-questions">
+                            <div class="example-question" onclick="askExample('贾宝玉是谁？')">
+                                💎 贾宝玉是谁？
+                            </div>
+                            <div class="example-question" onclick="askExample('林黛玉和薛宝钗有什么区别？')">
+                                🌸 林黛玉和薛宝钗有什么区别？
+                            </div>
+                            <div class="example-question" onclick="askExample('红楼梦的主要人物有哪些？')">
+                                👥 红楼梦的主要人物有哪些？
+                            </div>
+                        </div>
+                    </div>
+                `;
+                queryInput.focus();
+            }
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100);
+        }
+
+        // HTML 转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
 </body>

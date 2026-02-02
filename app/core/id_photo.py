@@ -112,6 +112,11 @@ class IDPhotoGenerator:
             output = remove(image)
             return output
             
+        except ImportError as e:
+            print(f"⚠️ rembg 未安装或依赖缺失: {e}")
+            print(f"   背景移除功能将被禁用，使用原图")
+            # 如果失败，返回原图
+            return image.convert("RGBA")
         except Exception as e:
             print(f"背景移除失败: {e}")
             # 如果失败，返回原图
