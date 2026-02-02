@@ -29,6 +29,7 @@
             text-align: center;
             color: white;
             margin-bottom: 30px;
+            position: relative;
         }
 
         .header h1 {
@@ -39,6 +40,36 @@
         .header p {
             font-size: 1.1em;
             opacity: 0.9;
+        }
+
+        .header-actions {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .clear-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .clear-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .clear-btn:active {
+            transform: translateY(0);
         }
 
         .model-info {
@@ -434,6 +465,12 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="header-actions">
+                <button class="clear-btn" id="clearBtn" onclick="clearChat()">
+                    <span>🗑️</span>
+                    <span>清空对话</span>
+                </button>
+            </div>
             <h1>📚 四大名著知识有问必答</h1>
             <p>红楼梦 · 三国演义 · 西游记 · 水浒传</p>
             <div class="model-info" id="modelInfo">
@@ -691,6 +728,34 @@
         // 滚动到底部
         function scrollToBottom() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 清空对话
+        function clearChat() {
+            // 如果没有对话，直接返回
+            if (chatMessages.children.length === 0) {
+                return;
+            }
+
+            // 确认提示
+            if (!confirm('确定要清空所有对话吗？')) {
+                return;
+            }
+
+            // 添加淡出动画
+            chatMessages.style.opacity = '0';
+            chatMessages.style.transition = 'opacity 0.3s';
+
+            setTimeout(() => {
+                // 清空所有消息
+                chatMessages.innerHTML = '';
+                
+                // 恢复透明度
+                chatMessages.style.opacity = '1';
+                
+                // 显示提示
+                console.log('对话已清空');
+            }, 300);
         }
 
         async function submitQuery() {
