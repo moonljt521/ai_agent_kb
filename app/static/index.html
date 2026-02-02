@@ -7,6 +7,26 @@
     <!-- 引入 marked.js 用于 Markdown 解析 -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        :root {
+            --primary-color: #667eea;
+            --primary-dark: #5568d3;
+            --secondary-color: #764ba2;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --text-primary: #1a1a1a;
+            --text-secondary: #666;
+            --text-tertiary: #999;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #f0f2f5;
+            --border-color: #e5e7eb;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,113 +34,129 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: var(--bg-tertiary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
+            color: var(--text-primary);
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
+        .header-logo {
+            font-size: 1.5em;
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .header-title h1 {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .header-title p {
+            font-size: 0.8em;
+            color: var(--text-tertiary);
+            font-weight: 400;
         }
 
         .header-actions {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+            display: flex;
+            gap: 8px;
         }
 
         .clear-btn {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 0.9em;
-            transition: all 0.3s;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
+            font-weight: 500;
         }
 
         .clear-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
         }
 
         .clear-btn:active {
-            transform: translateY(0);
+            transform: scale(0.98);
         }
 
         .model-info {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
-            padding: 15px 20px;
-            margin-top: 15px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
             display: flex;
-            justify-content: center;
-            gap: 30px;
-            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 0.85em;
         }
 
         .model-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: white;
-            font-size: 0.95em;
+            gap: 6px;
+            color: var(--text-secondary);
         }
 
         .model-item .icon {
-            font-size: 1.2em;
-        }
-
-        .model-item .label {
-            opacity: 0.8;
-            margin-right: 5px;
+            font-size: 1.1em;
         }
 
         .model-item .value {
-            font-weight: bold;
+            font-weight: 500;
+            color: var(--text-primary);
         }
 
         .chat-box {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            padding: 30px;
-            margin-bottom: 20px;
+            background: var(--bg-primary);
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            height: 70vh;
+            overflow: hidden;
         }
 
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            margin-bottom: 20px;
-            padding-right: 10px;
+            padding: 24px;
         }
 
         .chat-messages::-webkit-scrollbar {
@@ -128,53 +164,121 @@
         }
 
         .chat-messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
+            background: transparent;
         }
 
         .chat-messages::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
+            background: var(--border-color);
+            border-radius: 3px;
         }
 
         .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            background: var(--text-tertiary);
+        }
+
+        .book-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .book-filter label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+        }
+
+        .book-filter select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .book-filter select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .book-filter select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .selected-book-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
         }
 
         .input-group {
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            padding: 16px 24px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-color);
         }
 
         #queryInput {
             flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.95em;
+            transition: all 0.2s;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-family: inherit;
+            line-height: 1.5;
         }
 
         #queryInput:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #queryInput::placeholder {
+            color: var(--text-tertiary);
         }
 
         #submitBtn {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 24px;
+            background: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: var(--radius-md);
+            font-size: 0.95em;
+            font-weight: 500;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s;
+            white-space: nowrap;
         }
 
         #submitBtn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
 
         #submitBtn:active {
@@ -182,36 +286,45 @@
         }
 
         #submitBtn:disabled {
-            background: #ccc;
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
             cursor: not-allowed;
             transform: none;
         }
 
         .message-bubble {
-            margin-bottom: 20px;
-            animation: fadeIn 0.3s;
+            margin-bottom: 24px;
+            animation: fadeIn 0.3s ease-out;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { 
+                opacity: 0; 
+                transform: translateY(8px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
         }
 
         .message-question {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .question-bubble {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-color);
             color: white;
-            padding: 12px 18px;
-            border-radius: 18px 18px 4px 18px;
-            max-width: 70%;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            border-bottom-right-radius: 4px;
+            max-width: 75%;
             word-wrap: break-word;
-            font-size: 1em;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            font-size: 0.95em;
+            line-height: 1.6;
+            box-shadow: var(--shadow-sm);
         }
 
         .message-answer {
@@ -220,17 +333,20 @@
         }
 
         .answer-bubble {
-            background: #f8f9fa;
-            border-radius: 18px 18px 18px 4px;
-            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            border-top-left-radius: 4px;
+            padding: 16px;
             max-width: 85%;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
         }
 
         .answer {
-            color: #333;
+            color: var(--text-primary);
             line-height: 1.8;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            font-size: 0.95em;
         }
 
         .answer h1, .answer h2, .answer h3 {
@@ -322,67 +438,68 @@
 
         .meta {
             display: flex;
-            gap: 15px;
+            gap: 8px;
             flex-wrap: wrap;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
         }
 
         .badge {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
             font-weight: 500;
+            border: 1px solid;
         }
 
         .badge.success {
-            background: #d4edda;
-            color: #155724;
+            background: #d1fae5;
+            color: #065f46;
+            border-color: #6ee7b7;
         }
 
         .badge.info {
-            background: #d1ecf1;
-            color: #0c5460;
+            background: #dbeafe;
+            color: #1e40af;
+            border-color: #93c5fd;
         }
 
         .badge.warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .badge.danger {
-            background: #f8d7da;
-            color: #721c24;
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fcd34d;
         }
 
         .badge.primary {
-            background: #cce5ff;
-            color: #004085;
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--primary-color);
+            border-color: var(--primary-color);
         }
 
         .process-info {
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            border-radius: 5px;
+            background: var(--bg-primary);
+            border-left: 3px solid var(--primary-color);
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: var(--radius-sm);
         }
 
         .process-info h4 {
-            color: #667eea;
-            font-size: 0.95em;
+            color: var(--text-secondary);
+            font-size: 0.85em;
             margin-bottom: 8px;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
+            font-weight: 500;
         }
 
         .process-steps {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
@@ -390,20 +507,22 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            font-size: 0.9em;
-            padding: 5px 10px;
-            background: white;
-            border-radius: 5px;
-            border: 1px solid #e0e0e0;
+            font-size: 0.85em;
+            padding: 4px 10px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
         }
 
         .process-step .icon {
-            font-size: 1.1em;
+            font-size: 1em;
         }
 
         .process-step.active {
-            border-color: #667eea;
-            background: #f0f4ff;
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--primary-color);
         }
 
         .process-step.inactive {
@@ -411,85 +530,267 @@
         }
 
         .loading {
-            text-align: center;
-            color: #667eea;
-            font-size: 1.1em;
-            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            padding: 8px 0;
         }
 
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
+        .loading-dots {
+            display: flex;
+            gap: 4px;
         }
 
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
+        .loading-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { 
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% { 
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #fecaca;
+            font-size: 0.9em;
         }
 
         .sources {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
         }
 
         .sources h4 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 0.95em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-size: 0.85em;
+            font-weight: 500;
         }
 
         .source-item {
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
             margin-bottom: 8px;
-            font-size: 0.9em;
-            border-left: 3px solid #667eea;
+            overflow: hidden;
+            transition: all 0.2s;
         }
 
-        .source-item strong {
-            color: #667eea;
+        .source-item.expanded {
+            border-color: var(--primary-color);
+        }
+
+        .source-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .source-header:hover {
+            background: var(--bg-secondary);
+        }
+
+        .source-info {
+            flex: 1;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .source-info strong {
+            color: var(--text-primary);
+            margin-right: 8px;
+        }
+
+        .source-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .source-toggle:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .toggle-icon {
+            font-size: 0.8em;
+            transition: transform 0.2s;
+        }
+
+        .source-content {
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 500px;
+            }
+        }
+
+        .source-preview {
+            font-size: 0.85em;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .source-preview mark {
+            background: rgba(102, 126, 234, 0.2);
+            color: var(--primary-color);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .time-info {
+            color: var(--text-tertiary);
+            font-size: 0.8em;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time-info .icon {
+            font-size: 0.9em;
+        }
+
+        .answer-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-btn .icon {
+            font-size: 1em;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
+            <div class="header-left">
+                <span class="header-logo">📚</span>
+                <div class="header-title">
+                    <h1>四大名著知识问答</h1>
+                    <p>红楼梦 · 三国演义 · 西游记 · 水浒传</p>
+                </div>
+            </div>
             <div class="header-actions">
+                <div class="model-info" id="modelInfo">
+                    <div class="model-item">
+                        <span class="icon">🤖</span>
+                        <span class="value" id="llmModel">加载中...</span>
+                    </div>
+                    <div class="model-item">
+                        <span class="icon">🔍</span>
+                        <span class="value" id="embeddingModel">加载中...</span>
+                    </div>
+                </div>
                 <button class="clear-btn" id="clearBtn" onclick="clearChat()">
                     <span>🗑️</span>
-                    <span>清空对话</span>
+                    <span>清空</span>
                 </button>
-            </div>
-            <h1>📚 四大名著知识有问必答</h1>
-            <p>红楼梦 · 三国演义 · 西游记 · 水浒传</p>
-            <div class="model-info" id="modelInfo">
-                <div class="model-item">
-                    <span class="icon">🤖</span>
-                    <span class="label">AI模型:</span>
-                    <span class="value" id="llmModel">加载中...</span>
-                </div>
-                <div class="model-item">
-                    <span class="icon">🔍</span>
-                    <span class="label">向量模型:</span>
-                    <span class="value" id="embeddingModel">加载中...</span>
-                </div>
             </div>
         </div>
 
         <div class="chat-box">
             <div class="chat-messages" id="chatMessages">
                 <!-- 聊天消息将在这里显示 -->
+            </div>
+
+            <div class="book-filter">
+                <label for="bookSelect">
+                    <span>📚</span>
+                    <span>筛选书籍：</span>
+                </label>
+                <select id="bookSelect">
+                    <option value="">全部书籍</option>
+                    <option value="红楼梦">红楼梦</option>
+                    <option value="三国演义">三国演义</option>
+                    <option value="西游记">西游记</option>
+                    <option value="水浒传">水浒传</option>
+                </select>
+                <span class="selected-book-tag" id="bookTag" style="display: none;">
+                    <span id="bookTagText"></span>
+                </span>
             </div>
 
             <div class="input-group">
@@ -508,6 +809,20 @@
         const queryInput = document.getElementById('queryInput');
         const submitBtn = document.getElementById('submitBtn');
         const chatMessages = document.getElementById('chatMessages');
+        const bookSelect = document.getElementById('bookSelect');
+        const bookTag = document.getElementById('bookTag');
+        const bookTagText = document.getElementById('bookTagText');
+
+        // 书籍选择变化时更新标签
+        bookSelect.addEventListener('change', () => {
+            const selectedBook = bookSelect.value;
+            if (selectedBook) {
+                bookTag.style.display = 'inline-flex';
+                bookTagText.textContent = selectedBook;
+            } else {
+                bookTag.style.display = 'none';
+            }
+        });
 
         // 配置 marked.js
         if (typeof marked !== 'undefined') {
@@ -566,16 +881,33 @@
         submitBtn.addEventListener('click', submitQuery);
 
         // 添加问题气泡
-        function addQuestionBubble(question) {
+        function addQuestionBubble(question, selectedBook) {
             const messageBubble = document.createElement('div');
             messageBubble.className = 'message-bubble';
+            messageBubble.dataset.timestamp = Date.now(); // 记录开始时间
+            messageBubble.dataset.question = question; // 保存问题文本
+            messageBubble.dataset.book = selectedBook || ''; // 保存书籍选择
+            
+            // 如果选择了书籍，显示书籍标签
+            const bookTagHtml = selectedBook ? `
+                <div style="margin-bottom: 5px;">
+                    <span class="selected-book-tag">
+                        <span>📚 ${selectedBook}</span>
+                    </span>
+                </div>
+            ` : '';
+            
             messageBubble.innerHTML = `
                 <div class="message-question">
-                    <div class="question-bubble">${question}</div>
+                    <div class="question-bubble">
+                        ${bookTagHtml}
+                        ${question}
+                    </div>
                 </div>
             `;
             chatMessages.appendChild(messageBubble);
             scrollToBottom();
+            return messageBubble; // 返回气泡元素
         }
 
         // 添加加载气泡
@@ -628,16 +960,27 @@
         }
 
         // 完成答案气泡（添加元数据）
-        function finalizeAnswerBubble(messageBubble, data) {
+        function finalizeAnswerBubble(messageBubble, data, startTime) {
             let sourcesHtml = '';
             if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
                 sourcesHtml = `
                     <div class="sources">
-                        <h4>📚 引用来源：</h4>
-                        ${data.sources.map(source => `
-                            <div class="source-item">
-                                <strong>文档：</strong>${source.source} 
-                                <strong>页码：</strong>${source.page}
+                        <h4>📚 引用来源 (${data.sources.length})：</h4>
+                        ${data.sources.map((source, index) => `
+                            <div class="source-item" data-index="${index}">
+                                <div class="source-header" onclick="toggleSource(this)">
+                                    <div class="source-info">
+                                        <strong>文档：</strong>${source.source} 
+                                        <strong>页码：</strong>${source.page}
+                                    </div>
+                                    <button class="source-toggle">
+                                        <span class="toggle-icon">▼</span>
+                                        <span class="toggle-text">展开</span>
+                                    </button>
+                                </div>
+                                <div class="source-content" style="display: none;">
+                                    <div class="source-preview">${highlightKeywords(source.preview, data.query)}</div>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -646,6 +989,10 @@
 
             // 判断是否使用了 LLM
             const usedLLM = !data.used_direct_retrieval;
+            
+            // 计算耗时
+            const endTime = Date.now();
+            const duration = ((endTime - startTime) / 1000).toFixed(2);
             
             // 构建处理流程信息
             const processInfoHtml = `
@@ -703,6 +1050,20 @@
                     ` : ''}
                 </div>
                 ${sourcesHtml}
+                <div class="time-info">
+                    <span class="icon">⏱️</span>
+                    <span>耗时 ${duration} 秒</span>
+                </div>
+                <div class="answer-actions">
+                    <button class="action-btn" onclick="regenerateAnswer(this)">
+                        <span class="icon">🔄</span>
+                        <span>重新生成</span>
+                    </button>
+                    <button class="action-btn" onclick="copyAnswer(this)">
+                        <span class="icon">📋</span>
+                        <span>复制答案</span>
+                    </button>
+                </div>
             `);
             
             scrollToBottom();
@@ -758,6 +1119,166 @@
             }, 300);
         }
 
+        // 重新生成答案
+        async function regenerateAnswer(button) {
+            // 禁用按钮
+            button.disabled = true;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="icon">⏳</span><span>生成中...</span>';
+
+            try {
+                // 找到当前答案气泡的父容器
+                const messageBubble = button.closest('.message-bubble');
+                
+                // 找到对应的问题气泡（前一个兄弟元素）
+                let questionBubble = messageBubble.previousElementSibling;
+                while (questionBubble && !questionBubble.querySelector('.question-bubble')) {
+                    questionBubble = questionBubble.previousElementSibling;
+                }
+
+                if (!questionBubble) {
+                    throw new Error('找不到对应的问题');
+                }
+
+                // 获取问题文本和书籍选择
+                const question = questionBubble.dataset.question;
+                const selectedBook = questionBubble.dataset.book;
+
+                if (!question) {
+                    throw new Error('问题文本为空');
+                }
+
+                // 移除当前答案气泡
+                messageBubble.remove();
+
+                // 记录开始时间
+                const startTime = Date.now();
+
+                // 创建新的答案气泡
+                const answerBubble = createAnswerBubble();
+                let fullText = '';
+
+                // 构建请求 URL
+                let url = `/chat?query=${encodeURIComponent(question)}`;
+                if (selectedBook) {
+                    url += `&book=${encodeURIComponent(selectedBook)}`;
+                }
+
+                const response = await fetch(url);
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.slice(6);
+                            try {
+                                const data = JSON.parse(jsonStr);
+                                
+                                if (data.type === 'text') {
+                                    fullText += data.content;
+                                    updateAnswerBubble(answerBubble, fullText);
+                                } else if (data.type === 'metadata') {
+                                    finalizeAnswerBubble(answerBubble, data, startTime);
+                                } else if (data.type === 'error') {
+                                    answerBubble.remove();
+                                    addErrorBubble(data.error);
+                                }
+                            } catch (e) {
+                                console.error('Parse error:', e);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('重新生成失败:', error);
+                alert('重新生成失败: ' + error.message);
+                // 恢复按钮
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        }
+
+        // 复制答案
+        function copyAnswer(button) {
+            try {
+                // 找到答案内容
+                const messageBubble = button.closest('.message-bubble');
+                const answerDiv = messageBubble.querySelector('.answer');
+                
+                if (!answerDiv) {
+                    throw new Error('找不到答案内容');
+                }
+
+                // 提取纯文本（去除 HTML 标签）
+                const text = answerDiv.innerText || answerDiv.textContent;
+
+                // 复制到剪贴板
+                navigator.clipboard.writeText(text).then(() => {
+                    // 显示成功提示
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '<span class="icon">✅</span><span>已复制</span>';
+                    button.style.color = 'var(--primary-color)';
+                    
+                    // 2秒后恢复
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.color = '';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制');
+                });
+            } catch (error) {
+                console.error('复制失败:', error);
+                alert('复制失败: ' + error.message);
+            }
+        }
+
+        // 切换引用来源展开/折叠
+        function toggleSource(header) {
+            const sourceItem = header.closest('.source-item');
+            const content = sourceItem.querySelector('.source-content');
+            const toggleIcon = header.querySelector('.toggle-icon');
+            const toggleText = header.querySelector('.toggle-text');
+            
+            if (content.style.display === 'none') {
+                // 展开
+                content.style.display = 'block';
+                toggleIcon.textContent = '▲';
+                toggleText.textContent = '折叠';
+                sourceItem.classList.add('expanded');
+            } else {
+                // 折叠
+                content.style.display = 'none';
+                toggleIcon.textContent = '▼';
+                toggleText.textContent = '展开';
+                sourceItem.classList.remove('expanded');
+            }
+        }
+
+        // 高亮关键词
+        function highlightKeywords(text, query) {
+            if (!text || !query) return text;
+            
+            // 简单的关键词提取（按空格分词）
+            const keywords = query.split(/\s+/).filter(k => k.length > 1);
+            
+            let highlightedText = text;
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`(${keyword})`, 'gi');
+                highlightedText = highlightedText.replace(regex, '<mark>$1</mark>');
+            });
+            
+            return highlightedText;
+        }
+
         async function submitQuery() {
             const query = queryInput.value.trim();
             
@@ -766,8 +1287,12 @@
                 return;
             }
 
-            // 添加问题气泡
-            addQuestionBubble(query);
+            // 获取选中的书籍
+            const selectedBook = bookSelect.value;
+
+            // 添加问题气泡并记录开始时间
+            const questionBubble = addQuestionBubble(query, selectedBook);
+            const startTime = Date.now();
 
             // 禁用输入
             submitBtn.disabled = true;
@@ -779,7 +1304,13 @@
             let fullText = '';
 
             try {
-                const response = await fetch(`/chat?query=${encodeURIComponent(query)}`);
+                // 构建请求 URL，如果选择了书籍则添加 book 参数
+                let url = `/chat?query=${encodeURIComponent(query)}`;
+                if (selectedBook) {
+                    url += `&book=${encodeURIComponent(selectedBook)}`;
+                }
+
+                const response = await fetch(url);
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
 
@@ -801,8 +1332,8 @@
                                     fullText += data.content;
                                     updateAnswerBubble(answerBubble, fullText);
                                 } else if (data.type === 'metadata') {
-                                    // 元数据
-                                    finalizeAnswerBubble(answerBubble, data);
+                                    // 元数据（传递开始时间）
+                                    finalizeAnswerBubble(answerBubble, data, startTime);
                                 } else if (data.type === 'error') {
                                     // 错误
                                     answerBubble.remove();
