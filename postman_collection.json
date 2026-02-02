@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "四大名著知识问答 API",
+    "description": "四大名著知识问答系统的完整 API 接口集合",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8888",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. 获取配置信息",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/config",
+          "host": ["{{baseUrl}}"],
+          "path": ["config"]
+        },
+        "description": "获取当前系统的 LLM 和 Embedding 模型配置信息"
+      },
+      "response": []
+    },
+    {
+      "name": "2. 获取书籍列表",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/books",
+          "host": ["{{baseUrl}}"],
+          "path": ["books"]
+        },
+        "description": "获取知识库中所有可用的书籍列表及统计信息"
+      },
+      "response": []
+    },
+    {
+      "name": "3. 聊天接口（POST，推荐）",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"贾宝玉是谁？\",\n  \"book\": \"红楼梦\",\n  \"history\": []\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["chat"]
+        },
+        "description": "流式聊天接口，支持多轮对话。返回 Server-Sent Events (SSE) 格式的流式响应。"
+      },
+      "response": []
+    },
+    {
+      "name": "4. 聊天接口（POST，多轮对话）",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"他的妻子是谁？\",\n  \"book\": \"红楼梦\",\n  \"history\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"贾宝玉是谁？\",\n      \"timestamp\": 1706889600000\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"贾宝玉是《红楼梦》中的男主角，荣国府贾政与王夫人所生的次子。\",\n      \"timestamp\": 1706889602000\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["chat"]
+        },
+        "description": "带对话历史的聊天请求，系统会理解上下文（如'他'指代前面提到的人物）"
+      },
+      "response": []
+    },
+    {
+      "name": "5. 聊天接口（POST，全部书籍）",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"孙悟空的师傅是谁？\",\n  \"book\": null,\n  \"history\": []\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["chat"]
+        },
+        "description": "不限定书籍，搜索全部知识库"
+      },
+      "response": []
+    },
+    {
+      "name": "6. 聊天接口（GET，简化版）",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/chat?query=贾宝玉是谁？&book=红楼梦",
+          "host": ["{{baseUrl}}"],
+          "path": ["chat"],
+          "query": [
+            {
+              "key": "query",
+              "value": "贾宝玉是谁？"
+            },
+            {
+              "key": "book",
+              "value": "红楼梦"
+            }
+          ]
+        },
+        "description": "GET 方法的简化版聊天接口，不支持多轮对话"
+      },
+      "response": []
+    },
+    {
+      "name": "7. 更新知识库",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/ingest",
+          "host": ["{{baseUrl}}"],
+          "path": ["ingest"]
+        },
+        "description": "手动触发知识库重新索引（耗时较长，仅在添加新文档时使用）"
+      },
+      "response": []
+    }
+  ]
+}
