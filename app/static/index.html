@@ -871,6 +871,347 @@
         .action-btn .icon {
             font-size: 1em;
         }
+
+        /* ========================================
+           移动端适配（响应式设计）
+           ======================================== */
+        
+        @media screen and (max-width: 768px) {
+            /* 容器适配 */
+            .container {
+                max-width: 100%;
+            }
+
+            /* 头部适配 */
+            .header {
+                padding: 12px 16px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .header-left {
+                gap: 8px;
+            }
+
+            .header-logo {
+                font-size: 1.3em;
+            }
+
+            .header-title h1 {
+                font-size: 1em;
+            }
+
+            .header-title p {
+                font-size: 0.7em;
+            }
+
+            /* 模型信息适配 */
+            .model-info {
+                order: 3;
+                width: 100%;
+                padding: 8px 12px;
+                gap: 12px;
+                font-size: 0.75em;
+            }
+
+            .model-item {
+                gap: 4px;
+            }
+
+            /* 清空按钮适配 */
+            .clear-btn {
+                padding: 6px 10px;
+                font-size: 0.85em;
+            }
+
+            /* 聊天区域适配 */
+            .chat-messages {
+                padding: 12px;
+            }
+
+            /* 消息气泡适配 */
+            .question-bubble {
+                max-width: 85%;
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
+
+            .answer-bubble {
+                max-width: 100%;
+                padding: 12px;
+                font-size: 0.9em;
+            }
+
+            /* 书籍筛选适配 */
+            .book-filter {
+                padding: 10px 16px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .book-filter label {
+                font-size: 0.85em;
+            }
+
+            .book-filter select {
+                flex: 1;
+                min-width: 120px;
+                font-size: 0.85em;
+            }
+
+            /* 分析开关适配 */
+            .analysis-toggle {
+                width: 100%;
+                margin-left: 0;
+                padding-left: 0;
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+                padding-top: 8px;
+                justify-content: flex-start;
+            }
+
+            .toggle-label {
+                font-size: 0.85em;
+            }
+
+            /* 输入框适配 */
+            .input-group {
+                padding: 12px 16px;
+                gap: 8px;
+            }
+
+            #queryInput {
+                padding: 10px 12px;
+                font-size: 0.9em;
+            }
+
+            #submitBtn {
+                padding: 10px 16px;
+                font-size: 0.9em;
+            }
+
+            /* 处理流程信息适配 */
+            .process-info {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+
+            .source-explanation {
+                font-size: 0.85em;
+                padding: 6px 10px;
+            }
+
+            .process-details summary {
+                font-size: 0.8em;
+            }
+
+            .process-steps {
+                gap: 6px;
+            }
+
+            .process-step {
+                font-size: 0.8em;
+                padding: 3px 8px;
+            }
+
+            /* 引用来源适配 */
+            .sources {
+                padding: 10px;
+            }
+
+            .sources h4 {
+                font-size: 0.85em;
+            }
+
+            .source-item {
+                margin-bottom: 8px;
+            }
+
+            .source-header {
+                padding: 8px;
+            }
+
+            .source-info {
+                font-size: 0.8em;
+            }
+
+            .source-toggle {
+                padding: 4px 8px;
+                font-size: 0.75em;
+            }
+
+            .source-content {
+                padding: 8px;
+            }
+
+            .source-preview {
+                font-size: 0.8em;
+            }
+
+            /* 操作按钮适配 */
+            .answer-actions {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .action-btn {
+                flex: 1;
+                min-width: calc(50% - 3px);
+                padding: 8px 10px;
+                font-size: 0.8em;
+                justify-content: center;
+            }
+
+            /* 时间信息适配 */
+            .time-info {
+                font-size: 0.75em;
+            }
+
+            /* 标签适配 */
+            .selected-book-tag,
+            .context-badge {
+                font-size: 0.75em;
+                padding: 3px 8px;
+            }
+
+            /* Markdown 内容适配 */
+            .answer pre {
+                font-size: 0.8em;
+                padding: 8px;
+            }
+
+            .answer code {
+                font-size: 0.85em;
+            }
+
+            .answer h1 {
+                font-size: 1.3em;
+            }
+
+            .answer h2 {
+                font-size: 1.2em;
+            }
+
+            .answer h3 {
+                font-size: 1.1em;
+            }
+
+            .answer ul,
+            .answer ol {
+                padding-left: 20px;
+            }
+        }
+
+        /* 小屏手机适配（宽度 < 480px） */
+        @media screen and (max-width: 480px) {
+            .header {
+                padding: 10px 12px;
+            }
+
+            .header-title h1 {
+                font-size: 0.95em;
+            }
+
+            .header-title p {
+                font-size: 0.65em;
+            }
+
+            .model-info {
+                flex-direction: column;
+                gap: 6px;
+                font-size: 0.7em;
+            }
+
+            .chat-messages {
+                padding: 8px;
+            }
+
+            .question-bubble {
+                max-width: 90%;
+                font-size: 0.85em;
+            }
+
+            .answer-bubble {
+                font-size: 0.85em;
+                padding: 10px;
+            }
+
+            .book-filter {
+                padding: 8px 12px;
+            }
+
+            .input-group {
+                padding: 10px 12px;
+            }
+
+            #queryInput {
+                font-size: 0.85em;
+            }
+
+            #submitBtn {
+                padding: 10px 14px;
+                font-size: 0.85em;
+            }
+
+            .action-btn {
+                font-size: 0.75em;
+                padding: 6px 8px;
+            }
+
+            .source-explanation {
+                font-size: 0.8em;
+            }
+
+            .process-step {
+                font-size: 0.75em;
+            }
+        }
+
+        /* 横屏适配 */
+        @media screen and (max-height: 600px) and (orientation: landscape) {
+            .chat-messages {
+                max-height: calc(100vh - 280px);
+            }
+
+            .header {
+                padding: 8px 16px;
+            }
+
+            .model-info {
+                padding: 6px 12px;
+            }
+
+            .input-group {
+                padding: 8px 16px;
+            }
+        }
+
+        /* 触摸设备优化 */
+        @media (hover: none) and (pointer: coarse) {
+            /* 增大可点击区域 */
+            .action-btn,
+            .source-toggle,
+            .clear-btn,
+            #submitBtn {
+                min-height: 44px;
+            }
+
+            /* 移除 hover 效果 */
+            .action-btn:hover,
+            .source-toggle:hover,
+            .clear-btn:hover,
+            #submitBtn:hover {
+                transform: none;
+            }
+
+            /* 优化点击反馈 */
+            .action-btn:active,
+            .source-toggle:active,
+            .clear-btn:active,
+            #submitBtn:active {
+                opacity: 0.7;
+            }
+        }
     </style>
 </head>
 <body>
