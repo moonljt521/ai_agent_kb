@@ -228,6 +228,80 @@
             font-weight: 500;
         }
 
+        .analysis-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            padding-left: 16px;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .toggle-label:hover {
+            color: var(--primary-color);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .toggle-switch:hover .toggle-slider {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
         .context-badge {
             display: inline-flex;
             align-items: center;
@@ -497,6 +571,50 @@
             padding: 12px;
             margin-bottom: 12px;
             border-radius: var(--radius-sm);
+        }
+
+        .source-explanation {
+            font-size: 0.9em;
+            color: var(--text-primary);
+            padding: 8px 12px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: var(--radius-sm);
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .source-explanation strong {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .process-details {
+            margin-top: 8px;
+        }
+
+        .process-details summary {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            padding: 6px 0;
+            user-select: none;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .process-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .process-details summary:hover {
+            color: var(--primary-color);
+        }
+
+        .process-details[open] summary {
+            margin-bottom: 8px;
+            color: var(--primary-color);
         }
 
         .process-info h4 {
@@ -803,6 +921,17 @@
                 <span class="selected-book-tag" id="bookTag" style="display: none;">
                     <span id="bookTagText"></span>
                 </span>
+                
+                <div class="analysis-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showAnalysisToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <label for="showAnalysisToggle" class="toggle-label">
+                        <span>⚙️</span>
+                        <span>显示分析过程</span>
+                    </label>
+                </div>
             </div>
 
             <div class="input-group">
@@ -1007,8 +1136,11 @@
 
         // 完成答案气泡（添加元数据）
         function finalizeAnswerBubble(messageBubble, data, startTime) {
+            // 检查是否显示分析过程
+            const showAnalysis = document.getElementById('showAnalysisToggle').checked;
+            
             let sourcesHtml = '';
-            if (data.knowledge_base_used && data.sources && data.sources.length > 0) {
+            if (showAnalysis && data.knowledge_base_used && data.sources && data.sources.length > 0) {
                 sourcesHtml = `
                     <div class="sources">
                         <h4>📚 引用来源 (${data.sources.length})：</h4>
@@ -1040,34 +1172,53 @@
             const endTime = Date.now();
             const duration = ((endTime - startTime) / 1000).toFixed(2);
             
-            // 构建处理流程信息
-            const processInfoHtml = `
+            // 构建答案来源说明
+            let sourceExplanation = '';
+            if (data.knowledge_base_used && data.retrieved_docs_count > 0) {
+                sourceExplanation = `📚 基于本地知识库（检索到 ${data.retrieved_docs_count} 个相关片段）+ 🤖 LLM 分析整合`;
+            } else {
+                sourceExplanation = `🤖 纯 LLM 回答（知识库未找到相关内容）`;
+            }
+            
+            // 构建处理流程信息（仅在开关打开时显示）
+            const processInfoHtml = showAnalysis ? `
                 <div class="process-info">
-                    <h4>⚙️ 处理流程</h4>
-                    <div class="process-steps">
-                        <div class="process-step ${data.knowledge_base_used ? 'active' : 'inactive'}">
-                            <span class="icon">${data.knowledge_base_used ? '✅' : '❌'}</span>
-                            <span>本地知识库</span>
-                        </div>
-                        <div class="process-step ${usedLLM ? 'active' : 'inactive'}">
-                            <span class="icon">${usedLLM ? '✅' : '❌'}</span>
-                            <span>LLM 处理</span>
-                        </div>
-                        ${data.keyword_matched ? `
-                            <div class="process-step active">
-                                <span class="icon">🎯</span>
-                                <span>关键词匹配</span>
-                            </div>
-                        ` : ''}
-                        ${data.used_few_shot ? `
-                            <div class="process-step active">
-                                <span class="icon">📝</span>
-                                <span>Few-Shot</span>
-                            </div>
-                        ` : ''}
+                    <div class="source-explanation">
+                        <strong>💡 答案来源：</strong>${sourceExplanation}
                     </div>
+                    <details class="process-details">
+                        <summary>⚙️ 查看详细处理流程</summary>
+                        <div class="process-steps">
+                            <div class="process-step ${data.knowledge_base_used ? 'active' : 'inactive'}">
+                                <span class="icon">${data.knowledge_base_used ? '✅' : '❌'}</span>
+                                <span>本地知识库检索</span>
+                            </div>
+                            <div class="process-step active">
+                                <span class="icon">✅</span>
+                                <span>LLM 分析生成</span>
+                            </div>
+                            ${data.keyword_matched ? `
+                                <div class="process-step active">
+                                    <span class="icon">🎯</span>
+                                    <span>关键词增强（k=8）</span>
+                                </div>
+                            ` : ''}
+                            ${data.used_few_shot ? `
+                                <div class="process-step active">
+                                    <span class="icon">📝</span>
+                                    <span>Few-Shot 格式化</span>
+                                </div>
+                            ` : ''}
+                            ${data.has_context ? `
+                                <div class="process-step active">
+                                    <span class="icon">🔗</span>
+                                    <span>多轮对话上下文</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </details>
                 </div>
-            `;
+            ` : '';
 
             const answerBubble = messageBubble.querySelector('.answer-bubble');
             const answerDiv = messageBubble.querySelector('#streamingAnswer');
@@ -1077,24 +1228,13 @@
             answerDiv.innerHTML = parsedAnswer;
             answerDiv.removeAttribute('id');
             
-            // 添加处理流程信息（插入到答案前面）
-            answerBubble.insertAdjacentHTML('afterbegin', processInfoHtml);
+            // 添加处理流程信息（插入到答案前面，仅在开关打开时）
+            if (processInfoHtml) {
+                answerBubble.insertAdjacentHTML('afterbegin', processInfoHtml);
+            }
             
             // 添加元数据和来源
             answerBubble.insertAdjacentHTML('beforeend', `
-                <div class="meta">
-                    <span class="badge ${data.knowledge_base_used ? 'success' : 'warning'}">
-                        ${data.knowledge_base_used ? '✅ 使用知识库' : '❌ 未使用知识库'}
-                    </span>
-                    <span class="badge ${usedLLM ? 'primary' : 'info'}">
-                        ${usedLLM ? '🤖 使用 LLM' : '⚡ 直接检索'}
-                    </span>
-                    ${data.knowledge_base_used && data.retrieved_docs_count ? `
-                        <span class="badge info">
-                            📄 检索 ${data.retrieved_docs_count} 个片段
-                        </span>
-                    ` : ''}
-                </div>
                 ${sourcesHtml}
                 <div class="time-info">
                     <span class="icon">⏱️</span>
