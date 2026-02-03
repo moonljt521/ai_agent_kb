@@ -28,6 +28,15 @@ class AgentManager:
             )
             print(f"✅ 使用 Groq 模型: {os.getenv('GROQ_LLM_MODEL', 'llama-3.3-70b-versatile')}")
             print("ℹ️  Groq 使用简化的 RAG 模式（不使用 Agent）")
+        elif provider == "ollama":
+            self.llm = ChatOpenAI(
+                model=os.getenv("OLLAMA_LLM_MODEL", "qwen3:8b"),
+                openai_api_base=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434") + "/v1",
+                openai_api_key="ollama"  # Ollama 不需要真实的 API key
+            )
+            print(f"✅ 使用 Ollama 本地模型: {os.getenv('OLLAMA_LLM_MODEL', 'qwen3:8b')}")
+            print(f"🔗 Ollama 地址: {os.getenv('OLLAMA_BASE_URL', 'http://127.0.0.1:11434')}")
+            print("ℹ️  Ollama 使用简化的 RAG 模式（不使用 Agent）")
         else:  # 默认使用阿里云
             self.llm = ChatOpenAI(
                 model=os.getenv("LLM_MODEL", "qwen-plus"),
@@ -393,7 +402,7 @@ class AgentManager:
                 # return self.direct_retrieval(query)  # 旧方式：直接返回
                 
                 # 新方式：命中关键词时使用增强检索，但仍通过 LLM 处理
-                if self.provider == "groq":
+                if self.provider in ["groq", "ollama"]:
                     return self.run_simple_rag(query, keyword_matched=True)
                 else:
                     # 阿里云 Agent 模式暂时保持原样
@@ -402,8 +411,8 @@ class AgentManager:
                 print(f"🤖 {reason}")
         
         # 未命中关键词或未启用直接检索
-        # Groq 使用简化的 RAG，阿里云使用 Agent
-        if self.provider == "groq":
+        # Groq 和 Ollama 使用简化的 RAG，阿里云使用 Agent
+        if self.provider in ["groq", "ollama"]:
             return self.run_simple_rag(query, keyword_matched=False)
         else:
             return self.run_agent_mode(query)

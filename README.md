@@ -121,9 +121,25 @@ DASHSCOPE_API_KEY=your_api_key_here
 EMBEDDING_MODEL=text-embedding-v3
 ```
 
+**使用 Ollama（本地部署、完全免费）：** ⭐
+```env
+MODEL_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_LLM_MODEL=qwen3:8b
+
+# Embedding 使用本地模型（免费）
+LOCAL_EMBEDDING_MODEL=BAAI/bge-large-zh-v1.5
+```
+
 获取 API Key：
 - 阿里云：https://bailian.console.aliyun.com/
 - Groq：https://console.groq.com/
+- Ollama：无需 API Key，本地运行
+
+**快速切换提供商：**
+```bash
+./switch_provider.sh
+```
 
 ## 💰 费用
 
@@ -158,6 +174,7 @@ python scripts/ingest.py
 ## 📚 更多文档
 
 - [快速使用指南](docs/QUICK_START.md) - 详细的使用说明
+- [Ollama 本地部署](OLLAMA_SETUP.md) - 使用本地 Ollama 模型（完全免费）⭐
 - [纯 LLM 模式](docs/NO_RAG_MODE.md) - 不使用知识库，完全免费
 - [Groq 配置指南](docs/GROQ_SETUP.md) - 使用 Groq 免费快速模型
 - [支持的文档格式](docs/FORMATS.md) - 查看所有支持的格式
@@ -165,7 +182,7 @@ python scripts/ingest.py
 - [Embedding 详解](docs/EMBEDDING_EXPLAINED.md) - 理解向量化和费用
 - [向量数据库详解](docs/VECTOR_STORE.md) - 了解 vector_store 的工作原理
 - [项目总结](docs/SUMMARY.md) - 功能概览和使用场景
-- [提供商对比](docs/PROVIDER_COMPARISON.md) - 阿里云 vs Groq
+- [提供商对比](docs/PROVIDER_COMPARISON.md) - 阿里云 vs Groq vs Ollama
 
 ### 🔧 故障排查
 

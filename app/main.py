@@ -90,8 +90,34 @@ async def chat_post(request: ChatRequest):
             # 发送结束标记
             yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
             
+        except ConnectionError as e:
+            # Ollama 连接错误
+            provider = os.getenv("MODEL_PROVIDER", "aliyun")
+            if provider == "ollama":
+                error_msg = "无法连接到 Ollama 服务。请确保 Ollama 正在运行（访问 http://127.0.0.1:11434/ 检查）"
+            else:
+                error_msg = f"连接 {provider} 服务失败，请检查网络连接"
+            error_data = {"type": "error", "error": error_msg}
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
         except Exception as e:
-            error_data = {"type": "error", "error": str(e)}
+            # 其他错误的友好提示
+            error_str = str(e)
+            provider = os.getenv("MODEL_PROVIDER", "aliyun")
+            
+            # 根据错误类型提供友好提示
+            if "502" in error_str or "Bad Gateway" in error_str:
+                if provider == "ollama":
+                    error_msg = "Ollama 服务未响应。请检查：\n1. Ollama 是否正在运行\n2. 模型是否已下载（ollama list）\n3. 访问 http://127.0.0.1:11434/ 验证服务状态"
+                else:
+                    error_msg = f"{provider} 服务暂时不可用，请稍后重试"
+            elif "timeout" in error_str.lower():
+                error_msg = "请求超时，请检查网络连接或稍后重试"
+            elif "api" in error_str.lower() and "key" in error_str.lower():
+                error_msg = f"API Key 配置错误，请检查 .env 文件中的 {provider.upper()}_API_KEY"
+            else:
+                error_msg = f"处理请求时出错：{error_str}"
+            
+            error_data = {"type": "error", "error": error_msg}
             yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
     
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -142,8 +168,34 @@ async def chat_get(query: str, book: str = None):
             # 发送结束标记
             yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
             
+        except ConnectionError as e:
+            # Ollama 连接错误
+            provider = os.getenv("MODEL_PROVIDER", "aliyun")
+            if provider == "ollama":
+                error_msg = "无法连接到 Ollama 服务。请确保 Ollama 正在运行（访问 http://127.0.0.1:11434/ 检查）"
+            else:
+                error_msg = f"连接 {provider} 服务失败，请检查网络连接"
+            error_data = {"type": "error", "error": error_msg}
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
         except Exception as e:
-            error_data = {"type": "error", "error": str(e)}
+            # 其他错误的友好提示
+            error_str = str(e)
+            provider = os.getenv("MODEL_PROVIDER", "aliyun")
+            
+            # 根据错误类型提供友好提示
+            if "502" in error_str or "Bad Gateway" in error_str:
+                if provider == "ollama":
+                    error_msg = "Ollama 服务未响应。请检查：\n1. Ollama 是否正在运行\n2. 模型是否已下载（ollama list）\n3. 访问 http://127.0.0.1:11434/ 验证服务状态"
+                else:
+                    error_msg = f"{provider} 服务暂时不可用，请稍后重试"
+            elif "timeout" in error_str.lower():
+                error_msg = "请求超时，请检查网络连接或稍后重试"
+            elif "api" in error_str.lower() and "key" in error_str.lower():
+                error_msg = f"API Key 配置错误，请检查 .env 文件中的 {provider.upper()}_API_KEY"
+            else:
+                error_msg = f"处理请求时出错：{error_str}"
+            
+            error_data = {"type": "error", "error": error_msg}
             yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
     
     return StreamingResponse(generate(), media_type="text/event-stream")
@@ -183,6 +235,9 @@ async def get_config():
         elif model_provider == "groq":
             llm_model = os.getenv("GROQ_LLM_MODEL", "llama-3.3-70b-versatile")
             llm_display = f"Groq {llm_model}"
+        elif model_provider == "ollama":
+            llm_model = os.getenv("OLLAMA_LLM_MODEL", "qwen3:8b")
+            llm_display = f"Ollama {llm_model} (本地)"
         else:
             llm_display = "未知"
         

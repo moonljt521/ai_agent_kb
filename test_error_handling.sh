@@ -1,0 +1,48 @@
+#!/bin/bash
+
+echo "=========================================="
+echo "🧪 测试错误处理"
+echo "=========================================="
+echo ""
+
+# 检查 Ollama 状态
+echo "1️⃣ 检查 Ollama 服务状态..."
+if curl -s http://127.0.0.1:11434/ > /dev/null; then
+    echo "   ✅ Ollama 正在运行"
+    echo ""
+    echo "⚠️  为了测试错误提示，请先停止 Ollama 服务："
+    echo "   方法1: 在 Ollama 应用中退出"
+    echo "   方法2: killall ollama"
+    echo ""
+    echo "停止后，访问 http://localhost:8000 并提问，应该看到友好的错误提示"
+else
+    echo "   ❌ Ollama 未运行"
+    echo ""
+    echo "✅ 很好！现在可以测试错误提示了"
+    echo ""
+    echo "请执行以下步骤："
+    echo "1. 启动 Web 服务: ./start_web.sh"
+    echo "2. 访问: http://localhost:8000"
+    echo "3. 输入任意问题并提交"
+    echo "4. 应该看到友好的错误提示，而不是 'Error code: 502'"
+    echo ""
+    echo "预期错误提示："
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "❌ 错误"
+    echo ""
+    echo "Ollama 服务未响应。请检查："
+    echo "1. Ollama 是否正在运行"
+    echo "2. 模型是否已下载（ollama list）"
+    echo "3. 访问 http://127.0.0.1:11434/ 验证服务状态"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+fi
+
+echo ""
+echo "=========================================="
+echo "💡 提示"
+echo "=========================================="
+echo ""
+echo "测试完成后，重新启动 Ollama："
+echo "  方法1: 打开 Ollama 应用"
+echo "  方法2: ollama serve"
+echo ""

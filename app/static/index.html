@@ -703,10 +703,18 @@
         .error {
             background: #fee2e2;
             color: #991b1b;
-            padding: 12px 16px;
+            padding: 16px;
             border-radius: var(--radius-sm);
             border: 1px solid #fecaca;
             font-size: 0.9em;
+            line-height: 1.8;
+        }
+        
+        .error strong {
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #dc2626;
         }
 
         .sources {
@@ -1600,11 +1608,16 @@
         function addErrorBubble(errorMessage) {
             const messageBubble = document.createElement('div');
             messageBubble.className = 'message-bubble';
+            
+            // 将换行符转换为 <br> 标签
+            const formattedMessage = errorMessage.replace(/\n/g, '<br>');
+            
             messageBubble.innerHTML = `
                 <div class="message-answer">
                     <div class="answer-bubble">
                         <div class="error">
-                            <strong>❌ 错误：</strong>${errorMessage}
+                            <strong>❌ 错误</strong><br><br>
+                            ${formattedMessage}
                         </div>
                     </div>
                 </div>
