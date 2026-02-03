@@ -400,21 +400,56 @@ def generate_id_photo(
     - 用户要求更换背景颜色
     
     参数：
-    - image_path: 上传的图片路径
+    - image_path: 上传的图片路径（必需）。如果用户消息中包含"【系统提示】用户已上传图片，路径为：xxx"，请从中提取路径。
     - size: 证件照尺寸，支持：1寸、小1寸、2寸、小2寸、大1寸、护照、身份证、驾驶证、社保卡、教师资格证
     - background: 背景颜色，支持：白色、蓝色、红色、浅蓝
     - remove_background: 是否自动移除原背景（默认 True）
     
     返回：生成的证件照信息和下载链接
     
+    重要提示：
+    - 必须先确认用户已上传图片（消息中包含图片路径信息）
+    - 如果没有图片路径，请提示用户先上传图片
+    
     示例：
-    - generate_id_photo("photo.jpg", "1寸", "白色") -> "已生成1寸白底证件照..."
-    - generate_id_photo("photo.jpg", "2寸", "蓝色") -> "已生成2寸蓝底证件照..."
+    - generate_id_photo("app/static/uploads/upload_123.jpg", "1寸", "白色") -> "已生成1寸白底证件照..."
+    - generate_id_photo("app/static/uploads/upload_456.jpg", "2寸", "蓝色") -> "已生成2寸蓝底证件照..."
     """
-    from app.core.id_photo import IDPhotoGenerator
+    # 使用 HivisionIDPhotos 专业证件照生成器
+    import os
+    import json
+    from app.core.id_photo_hivision import HivisionIDPhotoGenerator
     from PIL import Image
     
     try:
+        # 调试：打印原始参数
+        print(f"\n🔍 原始参数:")
+        print(f"   image_path 类型: {type(image_path)}")
+        print(f"   image_path 值: {repr(image_path[:100] if isinstance(image_path, str) else image_path)}")
+        
+        # 如果 image_path 是 JSON 字符串，尝试解析
+        if isinstance(image_path, str) and image_path.strip().startswith('{'):
+            print(f"   检测到 JSON 格式，尝试解析...")
+            try:
+                params = json.loads(image_path)
+                image_path = params.get('image_path', image_path)
+                size = params.get('size', size)
+                background = params.get('background', background)
+                remove_background = params.get('remove_background', remove_background)
+                print(f"   ✅ JSON 解析成功")
+            except json.JSONDecodeError as e:
+                print(f"   ❌ JSON 解析失败: {e}")
+                pass  # 如果解析失败，继续使用原始值
+        
+        # 标准化背景颜色名称（支持中英文）
+        background_map = {
+            "白色": "white", "白": "white", "白底": "white",
+            "蓝色": "blue", "蓝": "blue", "蓝底": "blue",
+            "红色": "red", "红": "red", "红底": "red",
+            "浅蓝": "light_blue", "浅蓝色": "light_blue",
+        }
+        background = background_map.get(background, background)
+        
         print("\n" + "="*80)
         print("📸 证件照生成工具")
         print("="*80)
@@ -427,7 +462,15 @@ def generate_id_photo(
         
         # 检查文件是否存在
         if not os.path.exists(image_path):
-            return f"❌ 错误：找不到图片文件 {image_path}"
+            error_msg = f"""❌ 生成证件照失败：未找到图片文件 "{image_path}"。
+
+请确认图片已正确上传。您可以：
+1. 在右侧"证件照生成"区域上传照片
+2. 上传成功后，再次告诉我您需要的证件照规格
+
+例如："生成1寸白底证件照" 或 "生成2寸蓝底证件照"
+"""
+            return error_msg
         
         # 加载图片
         print(f"📂 加载图片...")
@@ -435,36 +478,61 @@ def generate_id_photo(
         print(f"✅ 图片加载成功，尺寸: {input_image.size}")
         print()
         
-        # 初始化生成器
-        generator = IDPhotoGenerator()
+        # 初始化生成器（使用 HivisionIDPhotos 专业实现）
+        print(f"🔧 初始化生成器...")
+        try:
+            generator = HivisionIDPhotoGenerator()
+            print(f"✅ 生成器初始化成功")
+            print(f"   HivisionIDPhotos 可用: {generator.hivision_available}")
+        except Exception as init_error:
+            print(f"❌ 生成器初始化失败: {init_error}")
+            import traceback
+            traceback.print_exc()
+            raise
+        
+        # 检查 rembg 是否可用
+        rembg_available = False
+        try:
+            import rembg
+            rembg_available = True
+        except ImportError:
+            pass
         
         # 生成证件照
+        print(f"📸 开始生成证件照...")
         result_image, filepath = generator.generate(
             input_image,
             size_name=size,
             background_color=background,
-            remove_bg=remove_background
+            remove_bg=remove_background and rembg_available
         )
         
-        # 获取相对路径（用于 Web 访问）
-        relative_path = filepath.replace("app/static/", "/static/")
+        # 生成下载链接（使用独立文件服务器）
+        filename = os.path.basename(filepath)
+        download_url = f"http://localhost:8000/photos/{filename}"
         
         print()
         print("🎉 证件照生成完成！")
         print("="*80 + "\n")
         
-        # 返回结果
-        result = f"""✅ 已成功生成 {size} {background}底证件照！
+        # 准备背景提示
+        bg_note = ""
+        if remove_background and not rembg_available:
+            bg_note = "\n\n⚠️ 注意：背景移除功能不可用（rembg 未完全安装），生成的照片保留了原始背景。如需更换背景，请安装完整依赖。"
+        
+        # 返回结果（包含绝对路径用于 Gradio 显示）
+        result = f"""✅ Successfully generated {size} ID photo with {background} background!
 
-📏 尺寸信息：
-- 规格：{size}
-- 像素：{result_image.size[0]} x {result_image.size[1]} px
-- 背景：{background}
+📏 Size Info:
+- Spec: {size}
+- Pixels: {result_image.size[0]} x {result_image.size[1]} px
+- Background: {background}
 
-📥 下载链接：
-{relative_path}
+📥 Download: {download_url}
 
-💡 提示：您可以继续要求生成其他尺寸或背景颜色的证件照。
+[IMAGE_PATH:{filepath}]{bg_note}
+
+💡 Tip: You can request other sizes or background colors.
 """
         
         return result
@@ -482,19 +550,19 @@ def list_id_photo_specs() -> str:
     
     返回：支持的尺寸和颜色列表
     """
-    from app.core.id_photo import IDPhotoGenerator
+    from app.core.id_photo_hivision import HivisionIDPhotoGenerator
     
     specs = """📸 证件照生成规格
 
 ### 支持的尺寸：
 """
     
-    for size_name, (width, height) in IDPhotoGenerator.SIZES.items():
+    for size_name, (width, height) in HivisionIDPhotoGenerator.SIZES.items():
         specs += f"- **{size_name}**: {width} x {height} px\n"
     
     specs += "\n### 支持的背景颜色：\n"
     
-    for color_name in IDPhotoGenerator.BACKGROUND_COLORS.keys():
+    for color_name in HivisionIDPhotoGenerator.BACKGROUND_COLORS.keys():
         specs += f"- {color_name}\n"
     
     specs += """

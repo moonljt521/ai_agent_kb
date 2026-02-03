@@ -35,7 +35,23 @@
 
 ## 🚀 快速开始
 
-### 方式一：Gradio 界面（推荐）⭐
+### 方式一：Gradio 界面 + 证件照生成（推荐）⭐
+
+```bash
+# 启动所有服务（Gradio 界面 + 文件服务器）
+bash start_all_services.sh
+
+# 访问地址
+# - Gradio 界面: http://localhost:7860
+# - 文件服务器: http://localhost:8000
+```
+
+**功能包括：**
+- 💬 智能问答（四大名著知识库）
+- 📸 证件照生成（10+ 种规格，4 种背景色）
+- 📥 一键下载生成的证件照
+
+### 方式二：仅 Gradio 界面（不含证件照下载）
 
 ```bash
 # 启动 Gradio 界面
@@ -45,7 +61,7 @@ bash start_gradio.sh
 http://localhost:7860
 ```
 
-### 方式二：命令行交互
+### 方式三：命令行交互
 
 ```bash
 # 1. 放置文档到 data/ 目录

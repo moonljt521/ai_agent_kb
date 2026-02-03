@@ -10,6 +10,9 @@ load_dotenv()
 app = FastAPI(title="AI Agent Knowledge Base API")
 agent_manager = AgentManager()
 
+# 挂载证件照目录（必须在 /static 之前，避免路径冲突）
+app.mount("/photos", StaticFiles(directory="app/static/photos"), name="photos")
+
 # 挂载静态文件目录
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 

@@ -67,14 +67,17 @@ def chat(message, history):
         逐步生成的回复消息
     """
     import time
+    import re
+    import os
+    from PIL import Image as PILImage
     
     try:
         # 如果用户提到证件照相关内容，且有上传的图片，自动添加图片路径
         global uploaded_image_path
         
-        if uploaded_image_path and any(keyword in message for keyword in ["证件照", "1寸", "2寸", "护照", "身份证", "蓝底", "白底", "红底"]):
-            # 在消息中添加图片路径信息
-            message = f"{message}\n[图片路径: {uploaded_image_path}]"
+        if uploaded_image_path and any(keyword in message for keyword in ["证件照", "1寸", "2寸", "护照", "身份证", "蓝底", "白底", "红底", "生成"]):
+            # 在消息中明确添加图片路径信息，让 Agent 能够识别
+            message = f"{message}\n\n【系统提示】用户已上传图片，路径为：{uploaded_image_path}"
         
         # 先显示"正在思考..."
         yield "🤔 正在思考..."
@@ -82,6 +85,47 @@ def chat(message, history):
         
         # 调用 Agent
         answer = agent.run(message)
+        
+        # 检查是否包含图片路径标记
+        image_match = re.search(r'\[IMAGE_PATH:(.*?)\]', answer)
+        generated_image_path = None
+        
+        if image_match:
+            image_path = image_match.group(1).strip()  # 去除空格
+            
+            # 移除标记
+            answer = answer.replace(image_match.group(0), "")
+            
+            # 检查文件是否存在
+            if os.path.exists(image_path):
+                generated_image_path = image_path
+                
+                # 获取文件信息
+                filename = os.path.basename(image_path)
+                file_size = os.path.getsize(image_path)
+                
+                # 读取图片尺寸
+                try:
+                    img = PILImage.open(image_path)
+                    img_size = f"{img.size[0]} x {img.size[1]} px"
+                except:
+                    img_size = "未知"
+                
+                # 在答案中添加图片信息和提示
+                answer = answer.strip() + f"\n\n---\n\n### 📸 生成的证件照\n\n"
+                answer += f"**文件名**: {filename}\n\n"
+                answer += f"**尺寸**: {img_size}\n\n"
+                answer += f"**文件大小**: {file_size / 1024:.1f} KB\n\n"
+                answer += f"**保存路径**: `{image_path}`\n\n"
+                answer += f"💡 **提示**: 图片已保存到本地，您可以在文件管理器中打开查看，或者使用下面的路径直接访问。\n\n"
+                
+                # 尝试使用 Gradio 的图片显示（如果支持）
+                # 注意：ChatInterface 的 Markdown 可能不支持本地图片
+                # 我们提供文件路径让用户可以手动打开
+                answer += f"📂 **文件路径**: `{os.path.abspath(image_path)}`\n\n"
+                
+            else:
+                answer = answer.strip() + f"\n\n⚠️ 图片文件未找到: {image_path}"
         
         # 获取检索信息
         retrieval_info = agent.get_last_retrieval_info()
@@ -140,6 +184,27 @@ def clear_memory_and_notify():
     """清空对话记忆并通知"""
     agent.clear_memory()
     return gr.Info("✅ 对话记忆已清空")
+
+def get_latest_generated_photo():
+    """获取最新生成的证件照"""
+    photos_dir = "app/static/photos"
+    
+    if not os.path.exists(photos_dir):
+        return None
+    
+    # 获取所有照片文件
+    photos = []
+    for f in os.listdir(photos_dir):
+        if f.endswith(('.jpg', '.jpeg', '.png')) and f.startswith('id_photo_'):
+            filepath = os.path.join(photos_dir, f)
+            photos.append((filepath, os.path.getmtime(filepath)))
+    
+    if not photos:
+        return None
+    
+    # 按修改时间排序，返回最新的
+    photos.sort(key=lambda x: x[1], reverse=True)
+    return photos[0][0]
 
 def get_model_info():
     """获取模型信息"""
@@ -203,16 +268,32 @@ with gr.Blocks(title="四大名著知识问答 + 证件照生成 Agent") as demo
                     gr.Markdown("### 📸 证件照生成")
                     
                     image_input = gr.Image(
-                        label="上传照片",
+                        label="1. 上传照片",
                         type="filepath",
-                        height=300
+                        height=250
                     )
                     
                     upload_status = gr.Textbox(
                         label="上传状态",
                         value="📷 请上传图片",
                         interactive=False,
-                        lines=5
+                        lines=3
+                    )
+                    
+                    # 添加生成的证件照显示区域
+                    gr.Markdown("### 2. 生成的证件照")
+                    generated_image = gr.Image(
+                        label="生成结果",
+                        type="filepath",
+                        height=300,
+                        interactive=False
+                    )
+                    
+                    # 添加刷新按钮
+                    refresh_btn = gr.Button("🔄 刷新显示最新照片", size="sm")
+                    refresh_btn.click(
+                        fn=get_latest_generated_photo,
+                        outputs=generated_image
                     )
                     
                     image_input.change(
@@ -227,7 +308,8 @@ with gr.Blocks(title="四大名著知识问答 + 证件照生成 Agent") as demo
                     2. 在对话框中输入要求，例如：
                        - "生成1寸白底证件照"
                        - "生成2寸蓝底证件照"
-                       - "生成护照照片"
+                    3. 生成的照片会显示在上方
+                    4. 如未显示，点击"刷新显示"
                     """)
             
             # 添加提示
@@ -307,9 +389,12 @@ with gr.Blocks(title="四大名著知识问答 + 证件照生成 Agent") as demo
             )
 
 if __name__ == "__main__":
+    # 启动服务
+    # allowed_paths 参数允许 Gradio 在界面中显示这些目录的文件
     demo.launch(
         server_name="0.0.0.0",
         server_port=7860,
         share=False,
         show_error=True,
+        allowed_paths=["app/static/photos", "app/static/uploads"]
     )

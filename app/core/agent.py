@@ -3,7 +3,7 @@ from langchain.agents import create_react_agent, AgentExecutor
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from app.core.rag import RAGManager
 from app.core.tools import get_all_tools
 from dotenv import load_dotenv
@@ -106,65 +106,64 @@ class AgentManager:
         for i, t in enumerate(tools, 1):
             print(f"   {i}. {t.name} - {t.description[:50]}...")
 
-        # 4. 构建系统提示（包含对话历史）
+        # 4. 创建 ReAct 提示词模板
         history_text = ""
         if chat_history:
-            history_text = "\n\n【对话历史】\n"
+            history_text = "【对话历史】\n"
             for msg in chat_history:
                 role = "用户" if isinstance(msg, HumanMessage) else "AI"
                 history_text += f"{role}: {msg.content}\n"
-            history_text += "\n注意：理解对话历史中的上下文，特别是代词（如\"他\"、\"这本书\"）的指代关系。\n"
+            history_text += "\n注意：理解对话历史中的上下文，特别是代词（如\"他\"、\"这本书\"）的指代关系。\n\n"
 
-        system_prompt = f"""你是一个功能强大的 AI Agent，专门回答关于中国四大名著的问题。
-{history_text}
-【你的能力】
-1. 搜索知识库：search_knowledge_base - 搜索四大名著的完整内容
-2. 数学计算：calculator - 进行数学运算
-3. 时间查询：get_current_time - 获取当前时间
-4. 文本统计：count_characters - 统计文本信息
-5. 文本搜索：text_search - 在文本中搜索关键词
-6. 数字比较：compare_numbers - 比较数字大小
-7. 名著列表：list_four_classics - 列出四大名著信息
-8. 书籍信息：get_book_info - 获取指定书籍详情
+        # 使用 ReAct 提示词模板
+        react_prompt = PromptTemplate.from_template("""你是一个功能强大的 AI Agent，专门回答关于中国四大名著的问题。
 
-【工作流程】
-1. 分析用户问题，判断需要使用哪些工具
-2. 如果问题涉及四大名著内容，先使用 search_knowledge_base 搜索
-3. 如果需要计算、时间等信息，使用相应的工具
-4. 可以组合使用多个工具来完成复杂任务
-5. 基于工具返回的结果，给出完整准确的答案
-6. 注意对话历史，理解代词指代
+{history_text}你可以使用以下工具：
 
-【核心规则】
-1. 对于四大名著的问题，必须先使用 search_knowledge_base 搜索
+{tools}
+
+使用以下格式进行推理：
+
+Question: 用户的问题
+Thought: 你应该思考要做什么
+Action: 要使用的工具，应该是 [{tool_names}] 中的一个
+Action Input: 工具的输入
+Observation: 工具返回的结果
+... (这个 Thought/Action/Action Input/Observation 可以重复 N 次)
+Thought: 我现在知道最终答案了
+Final Answer: 对用户问题的最终答案
+
+【重要规则】
+1. 对于四大名著的问题，必须使用 search_knowledge_base 工具
 2. 只能基于工具返回的结果回答，不要编造信息
 3. 如果工具返回"未找到"，明确告知用户
-4. 可以使用多个工具来完成任务
-5. 保持回答的准确性和完整性
-6. 结合对话历史理解问题中的代词指代
+4. 结合对话历史理解问题中的代词指代
 
-【示例】
-用户："红楼梦有多少回？"
-思考：这是关于书籍信息的问题
-行动：使用 get_book_info 工具
-结果：《红楼梦》有120回
+开始！
 
-用户："计算一下 123 + 456"
-思考：这是数学计算问题
-行动：使用 calculator 工具
-结果：579
+Question: {input}
+Thought: {agent_scratchpad}""")
 
-用户："贾宝玉和林黛玉的关系"
-思考：这需要查询知识库
-行动：使用 search_knowledge_base 工具
-结果：根据知识库内容回答..."""
-
-        # 5. 创建 Agent (新版本 LangChain 返回的是一个编译后的图)
-        return create_agent(
-            model=self.llm,
+        # 5. 创建 ReAct Agent
+        agent = create_react_agent(
+            llm=self.llm,
             tools=tools,
-            system_prompt=system_prompt
+            prompt=react_prompt.partial(history_text=history_text)
         )
+        
+        # 6. 创建 AgentExecutor
+        agent_executor = AgentExecutor(
+            agent=agent,
+            tools=tools,
+            verbose=True,  # 显示推理过程
+            max_iterations=5,  # 最多5步推理
+            handle_parsing_errors=True,  # 处理解析错误
+            return_intermediate_steps=True,  # 返回中间步骤
+        )
+        
+        print("🎯 ReAct Agent 已创建，verbose=True")
+        
+        return agent_executor
 
     def run_simple_rag(self, query: str):
         """简化的 RAG 实现，不使用 Agent（适用于 Groq）
@@ -375,42 +374,55 @@ class AgentManager:
             # 重置状态
             self.last_retrieved_docs = []
             self.used_knowledge_base = False
+            self.used_direct_retrieval = False
             
             # 获取对话历史
             memory_vars = self.memory.load_memory_variables({})
             chat_history = memory_vars.get("chat_history", [])
             
-            # 创建 Agent（传入对话历史）
-            graph = self.create_agent(chat_history=chat_history)
+            # 创建 ReAct Agent（传入对话历史）
+            agent_executor = self.create_agent(chat_history=chat_history)
             
-            # 调用图，输入消息列表
+            # 调用 Agent（ReAct 模式）
+            print(f"🚀 开始 ReAct 推理：{query}")
+            print("="*60)
             
-            inputs = {"messages": [{"role": "user", "content": query}]}
+            # 调用 Agent
+            result = agent_executor.invoke({"input": query})
             
-            # 打印发送给 LLM 的 prompt
-            print("\n" + "="*80)
-            print("📤 发送给 LLM 的消息：")
-            print("="*80)
-            for msg in inputs["messages"]:
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                print(f"\n[{role.upper()}]")
-                print(content)
-            if chat_history:
-                print(f"\n[对话历史] {len(chat_history)} 条消息")
-                for msg in chat_history[-4:]:
-                    role = "用户" if msg.__class__.__name__ == "HumanMessage" else "AI"
-                    content_preview = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
-                    print(f"  - {role}: {content_preview}")
-            print("="*80 + "\n")
+            print("="*60)
+            print("✅ ReAct 推理完成")
             
-            result = graph.invoke(inputs)
-            # 获取最后一条 AI 消息的内容
-            messages = result.get("messages", [])
-            if messages:
-                answer = messages[-1].content
-            else:
-                answer = "未能生成回复。"
+            answer = result.get("output", "未能生成回复。")
+            
+            
+            # 从 intermediate_steps 中提取图片路径并添加到答案
+            print(f"\n🔍 DEBUG: 检查 intermediate_steps")
+            if "intermediate_steps" in result:
+                print(f"   找到 {len(result['intermediate_steps'])} 个步骤")
+                for i, (action, observation) in enumerate(result['intermediate_steps']):
+                    print(f"   步骤 {i+1}: {action.tool}")
+                    if isinstance(observation, str) and "[IMAGE_PATH:" in observation:
+                        import re
+                        image_match = re.search(r'\[IMAGE_PATH:(.*?)\]', observation)
+                        if image_match:
+                            image_path = image_match.group(1).strip()
+                            answer = answer + f"\n\n[IMAGE_PATH:{image_path}]"
+                            print(f"   ✅ 已添加 IMAGE_PATH: {image_path}")
+                            break
+            
+            # 记录使用的工具
+            if "intermediate_steps" in result:
+                print(f"\n📊 推理步骤数：{len(result['intermediate_steps'])}")
+                for i, (action, observation) in enumerate(result['intermediate_steps'], 1):
+                    tool_name = action.tool
+                    self.last_call_info["tools_used"].append(tool_name)
+                    print(f"\n  步骤 {i}:")
+                    print(f"    🔧 工具: {tool_name}")
+                    print(f"    📥 输入: {action.tool_input}")
+                    obs_preview = str(observation)[:200] + "..." if len(str(observation)) > 200 else str(observation)
+                    print(f"    📤 结果: {obs_preview}")
+
         
         # 保存到记忆
         self.memory.save_context(
