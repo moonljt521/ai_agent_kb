@@ -174,6 +174,8 @@ python scripts/ingest.py
 ## 📚 更多文档
 
 - [快速使用指南](docs/QUICK_START.md) - 详细的使用说明
+- [向量检索原理](docs/VECTOR_SEARCH_EXPLAINED.md) - 通俗易懂的向量化和相似度计算说明 ⭐
+- [系统架构说明](docs/ARCHITECTURE.md) - 了解系统工作原理
 - [Ollama 本地部署](OLLAMA_SETUP.md) - 使用本地 Ollama 模型（完全免费）⭐
 - [纯 LLM 模式](docs/NO_RAG_MODE.md) - 不使用知识库，完全免费
 - [Groq 配置指南](docs/GROQ_SETUP.md) - 使用 Groq 免费快速模型

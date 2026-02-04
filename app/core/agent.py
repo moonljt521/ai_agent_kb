@@ -7,17 +7,20 @@ from langchain_core.prompts import ChatPromptTemplate
 from app.core.rag import RAGManager
 from app.core.keyword_matcher import KeywordMatcher
 from app.core.few_shot_manager import FewShotManager
+from app.core.hybrid_retriever import HybridRetriever
+from app.core.hallucination_guard import HallucinationGuard, CitationEnforcer
 from dotenv import load_dotenv
 
 load_dotenv()
 
 class AgentManager:
-    def __init__(self, enable_few_shot=True, enable_direct_retrieval=False):
+    def __init__(self, enable_few_shot=True, enable_direct_retrieval=False, enable_hybrid=False):
         # 获取模型提供商配置
         provider = os.getenv("MODEL_PROVIDER", "aliyun").lower()
         self.provider = provider
         self.enable_few_shot = enable_few_shot
         self.enable_direct_retrieval = enable_direct_retrieval  # 新增：是否启用直接检索
+        self.enable_hybrid = enable_hybrid or os.getenv("ENABLE_HYBRID_RETRIEVAL", "false").lower() == "true"
         
         # 根据提供商初始化 LLM
         if provider == "groq":
@@ -48,6 +51,25 @@ class AgentManager:
         self.rag = RAGManager()
         self.keyword_matcher = KeywordMatcher()
         self.few_shot_manager = FewShotManager() if enable_few_shot else None
+        
+        # 混合检索器（可选）
+        if self.enable_hybrid:
+            self.hybrid_retriever = HybridRetriever(self.rag)
+            print("🔗 混合检索模式已启用（本地 + 外部 API）")
+        else:
+            self.hybrid_retriever = None
+        
+        # 反幻觉守卫（可选）
+        enable_guard = os.getenv("ENABLE_HALLUCINATION_GUARD", "true").lower() == "true"
+        if enable_guard:
+            self.hallucination_guard = HallucinationGuard(
+                min_similarity=float(os.getenv("MIN_SIMILARITY", "0.5")),
+                min_docs=int(os.getenv("MIN_DOCS", "2"))
+            )
+        else:
+            self.hallucination_guard = None
+            print("⚠️  反幻觉守卫未启用")
+        
         self.last_retrieved_docs = []
         self.used_knowledge_base = False
         self.used_direct_retrieval = False
@@ -110,8 +132,10 @@ class AgentManager:
         # 如果命中关键词，增加检索数量以获得更全面的信息
         k = 8 if keyword_matched else 5
         
-        # 如果指定了书名过滤
-        if book_filter:
+        # 使用混合检索或本地检索
+        if self.hybrid_retriever:
+            docs = self.hybrid_retriever.retrieve(query, k=k, book_filter=book_filter)
+        elif book_filter:
             print(f"📚 限定检索范围：{book_filter}")
             docs = self.rag.search_by_book(query, book_filter, k=k)
         else:
