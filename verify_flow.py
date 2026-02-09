@@ -84,7 +84,7 @@ print("4️⃣  如何验证？")
 print("-"*60)
 print("方法 1：启动服务并查询")
 print("  ./start_web.sh")
-print("  访问 http://127.0.0.1:8000")
+print("  访问 http://127.0.0.1:8888")
 print("  查询 '诸葛亮'（在关键词列表中）")
 print()
 if enable_direct.lower() == "true":
@@ -96,7 +96,7 @@ else:
 print()
 
 print("方法 2：查看 API 响应")
-print("  curl 'http://127.0.0.1:8000/chat?query=诸葛亮'")
+print("  curl 'http://127.0.0.1:8888/chat?query=诸葛亮'")
 print()
 if enable_direct.lower() == "true":
     print("  预期：\"used_direct_retrieval\": true（命中关键词时）")

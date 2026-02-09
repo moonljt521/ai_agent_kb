@@ -51,27 +51,24 @@ def check_config():
     print_section("📋 当前配置")
     
     model_provider = os.getenv("MODEL_PROVIDER", "未设置")
-    embedding_type = os.getenv("EMBEDDING_TYPE", "未设置")
     local_model = os.getenv("LOCAL_EMBEDDING_MODEL", "未设置")
     
     print(f"  LLM 提供商: {model_provider}")
-    print(f"  Embedding 类型: {embedding_type}")
+    print(f"  Embedding 类型: 本地模型")
+    print(f"  本地模型: {local_model}")
     
-    if embedding_type == "local":
-        print(f"  本地模型: {local_model}")
-        
-        # 检查模型信息
-        if "bge-large-zh" in local_model:
-            print(f"  模型大小: 约 1.3 GB")
-            print(f"  准确度: 90-95%")
-        elif "bge-small-zh" in local_model:
-            print(f"  模型大小: 约 400 MB")
-            print(f"  准确度: 85-90%")
-        elif "text2vec-base-chinese" in local_model:
-            print(f"  模型大小: 约 400 MB")
-            print(f"  准确度: 85-90%")
-        else:
-            print(f"  模型大小: 未知")
+    # 检查模型信息
+    if "bge-large-zh" in local_model:
+        print(f"  模型大小: 约 1.3 GB")
+        print(f"  准确度: 90-95%")
+    elif "bge-small-zh" in local_model:
+        print(f"  模型大小: 约 400 MB")
+        print(f"  准确度: 85-90%")
+    elif "text2vec-base-chinese" in local_model:
+        print(f"  模型大小: 约 400 MB")
+        print(f"  准确度: 85-90%")
+    else:
+        print(f"  模型大小: 未知")
 
 def check_data_files():
     """检查数据文件"""
@@ -216,7 +213,7 @@ def main():
     print("💡 下一步:")
     print("  1. 启动网页服务: ./start_web.sh")
     print("  2. 或启动命令行: python scripts/chat.py")
-    print("  3. 测试查询: curl 'http://127.0.0.1:8000/chat?query=贾宝玉'")
+    print("  3. 测试查询: curl 'http://127.0.0.1:8888/chat?query=贾宝玉'")
     print()
 
 if __name__ == "__main__":

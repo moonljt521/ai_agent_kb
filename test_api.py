@@ -45,6 +45,12 @@ def test_books():
         print(f"\n📊 统计信息:")
         for book, stats in data['statistics'].items():
             print(f"  - {book}: {stats.get('文档数', 0)} 个文档")
+        
+        if 'summary' in data:
+            summary = data['summary']
+            print(f"\n📌 标签概览:")
+            print(f"  - 书籍数量: {summary.get('书籍数量', 0)}")
+            print(f"  - 文件映射数: {summary.get('文件映射数', 0)}")
     else:
         print(f"❌ 错误: {response.text}")
 

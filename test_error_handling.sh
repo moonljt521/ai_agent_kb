@@ -14,7 +14,7 @@ if curl -s http://127.0.0.1:11434/ > /dev/null; then
     echo "   方法1: 在 Ollama 应用中退出"
     echo "   方法2: killall ollama"
     echo ""
-    echo "停止后，访问 http://localhost:8000 并提问，应该看到友好的错误提示"
+    echo "停止后，访问 http://localhost:8888 并提问，应该看到友好的错误提示"
 else
     echo "   ❌ Ollama 未运行"
     echo ""
@@ -22,7 +22,7 @@ else
     echo ""
     echo "请执行以下步骤："
     echo "1. 启动 Web 服务: ./start_web.sh"
-    echo "2. 访问: http://localhost:8000"
+    echo "2. 访问: http://localhost:8888"
     echo "3. 输入任意问题并提交"
     echo "4. 应该看到友好的错误提示，而不是 'Error code: 502'"
     echo ""

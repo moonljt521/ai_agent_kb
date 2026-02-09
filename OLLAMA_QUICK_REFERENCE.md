@@ -22,7 +22,7 @@ cat .env | grep -E "(MODEL_PROVIDER|OLLAMA)"
 ./start_web.sh
 
 # 5. 访问
-open http://localhost:8000
+open http://localhost:8888
 ```
 
 ## 🔧 常用命令
@@ -167,7 +167,7 @@ sudo sysctl vm.swappiness=10
 
 - [Ollama 官方文档](https://ollama.ai/docs)
 - [模型库](https://ollama.ai/library)
-- [完整配置指南](OLLAMA_SETUP.md)
+- [API 文档](API_DOC.md)
 - [项目 README](README.md)
 
 ## 🆘 获取帮助
@@ -175,4 +175,4 @@ sudo sysctl vm.swappiness=10
 1. 运行诊断脚本：`./quick_test_ollama.sh`
 2. 查看日志：检查终端输出
 3. 测试错误处理：`./test_error_handling.sh`
-4. 查看完整文档：`OLLAMA_SETUP.md`
+4. 查看接口文档：`API_DOC.md`

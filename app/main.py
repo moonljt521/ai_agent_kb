@@ -214,10 +214,12 @@ async def get_books():
     """获取知识库中的所有书籍列表"""
     try:
         books = agent_manager.rag.get_books_list()
-        stats = agent_manager.rag.get_tag_statistics()
+        stats = agent_manager.rag.get_books_statistics()
+        summary = agent_manager.rag.get_tag_statistics()
         return {
             "books": books,
-            "statistics": stats
+            "statistics": stats,
+            "summary": summary
         }
     except Exception as e:
         return {"error": str(e)}

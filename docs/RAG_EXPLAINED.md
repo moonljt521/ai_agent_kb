@@ -344,7 +344,7 @@ cat app/core/agent.py | grep -A 20 "run_simple_rag"
 # 启动服务
 ./start_web.sh
 
-# 访问 http://localhost:8000
+# 访问 http://localhost:8888
 # 提问："贾宝玉是谁？"
 # 查看回答下方的"引用来源"
 ```
@@ -376,7 +376,7 @@ cat app/core/agent.py | grep -A 20 "run_simple_rag"
 "宝玉的身份" → [0.125, 0.450, ...]  # 很相似！
 ```
 
-详见：[向量检索原理详解](VECTOR_SEARCH_EXPLAINED.md)
+详见：[向量数据库详解](VECTOR_STORE.md)
 
 ### 3. 相似度搜索
 
@@ -477,6 +477,6 @@ RAG    = 开卷考试
 
 ## 📚 相关文档
 
-- [向量检索原理详解](VECTOR_SEARCH_EXPLAINED.md) - 理解 Embedding 和相似度
-- [系统架构说明](ARCHITECTURE.md) - 了解整体架构
 - [向量数据库详解](VECTOR_STORE.md) - 深入了解 ChromaDB
+- [标签与关键词对比](TAGS_VS_KEYWORDS.md) - 理解检索策略
+- [Few-Shot 学习指南](FEW_SHOT_GUIDE.md) - 提升回答风格一致性

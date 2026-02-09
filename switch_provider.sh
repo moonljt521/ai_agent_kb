@@ -28,9 +28,7 @@ case $choice in
         echo ""
         echo "✅ 已切换到 Groq"
         echo "   模型: $(grep 'GROQ_LLM_MODEL=' .env | cut -d'=' -f2)"
-        echo ""
-        echo "⚠️  注意：Groq 不提供 Embedding 服务"
-        echo "   文档导入仍需使用阿里云"
+        echo "   Embedding: 本地模型（LOCAL_EMBEDDING_MODEL）"
         ;;
     3)
         sed -i '' 's/MODEL_PROVIDER=.*/MODEL_PROVIDER=ollama/' .env

@@ -34,7 +34,7 @@
 |------|------|------|
 | llm_model | string | LLM 模型名称 |
 | embedding_model | string | Embedding 模型名称 |
-| model_provider | string | 模型提供商（aliyun/groq） |
+| model_provider | string | 模型提供商（aliyun/groq/ollama） |
 | enable_direct_retrieval | boolean | 是否启用直接检索 |
 
 **错误响应**:
@@ -66,20 +66,38 @@
   "statistics": {
     "红楼梦": {
       "文档数": 120,
-      "标签": ["人物", "诗词", "情节"]
+      "标签": ["人物", "情节", "诗词", "爱情"],
+      "作者": "曹雪芹",
+      "朝代": "清朝",
+      "体裁": "章回小说"
     },
     "三国演义": {
       "文档数": 120,
-      "标签": ["战争", "人物", "策略"]
+      "标签": ["人物", "情节", "战争", "政治"],
+      "作者": "罗贯中",
+      "朝代": "东汉末年",
+      "体裁": "历史演义"
     },
     "西游记": {
       "文档数": 100,
-      "标签": ["神话", "人物", "冒险"]
+      "标签": ["人物", "情节", "神话"],
+      "作者": "吴承恩",
+      "朝代": "唐朝",
+      "体裁": "神魔小说"
     },
     "水浒传": {
       "文档数": 120,
-      "标签": ["人物", "武功", "情节"]
+      "标签": ["人物", "情节", "战争"],
+      "作者": "施耐庵",
+      "朝代": "北宋",
+      "体裁": "英雄传奇"
     }
+  },
+  "summary": {
+    "书籍数量": 4,
+    "书籍列表": ["红楼梦", "三国演义", "西游记", "水浒传"],
+    "标签类型": ["book", "category", "dynasty", "genre"],
+    "文件映射数": 4
   }
 }
 ```
@@ -88,7 +106,8 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | books | array | 书籍名称列表 |
-| statistics | object | 各书籍的统计信息 |
+| statistics | object | 各书籍统计（文档数、标签、作者、朝代、体裁） |
+| summary | object | 标签配置概览信息 |
 
 **错误响应**:
 ```json
@@ -329,12 +348,23 @@ data class ConfigResponse(
 
 data class BooksResponse(
     val books: List<String>,
-    val statistics: Map<String, BookStats>
+    val statistics: Map<String, BookStats>,
+    val summary: BooksSummary
 )
 
 data class BookStats(
     val 文档数: Int,
-    val 标签: List<String>
+    val 标签: List<String>,
+    val 作者: String,
+    val 朝代: String,
+    val 体裁: String
+)
+
+data class BooksSummary(
+    val 书籍数量: Int,
+    val 书籍列表: List<String>,
+    val 标签类型: List<String>,
+    val 文件映射数: Int
 )
 
 data class ChatRequest(
@@ -451,11 +481,22 @@ struct ConfigResponse: Codable {
 struct BooksResponse: Codable {
     let books: [String]
     let statistics: [String: BookStats]
+    let summary: BooksSummary
 }
 
 struct BookStats: Codable {
     let 文档数: Int
     let 标签: [String]
+    let 作者: String
+    let 朝代: String
+    let 体裁: String
+}
+
+struct BooksSummary: Codable {
+    let 书籍数量: Int
+    let 书籍列表: [String]
+    let 标签类型: [String]
+    let 文件映射数: Int
 }
 
 struct ChatRequest: Codable {
@@ -592,11 +633,22 @@ interface ConfigResponse {
 interface BooksResponse {
   books: string[];
   statistics: Record<string, BookStats>;
+  summary: BooksSummary;
 }
 
 interface BookStats {
   文档数: number;
   标签: string[];
+  作者: string;
+  朝代: string;
+  体裁: string;
+}
+
+interface BooksSummary {
+  书籍数量: number;
+  书籍列表: string[];
+  标签类型: string[];
+  文件映射数: number;
 }
 
 interface Message {

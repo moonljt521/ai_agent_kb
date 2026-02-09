@@ -66,7 +66,7 @@ LLM 处理
 
 ```bash
 # 查询"诸葛亮"（命中关键词）
-curl "http://127.0.0.1:8000/chat?query=诸葛亮"
+curl "http://127.0.0.1:8888/chat?query=诸葛亮"
 
 # 结果：
 # - keyword_matched: true
@@ -135,7 +135,7 @@ LLM 处理
 
 ```bash
 # 查询"诸葛亮"（限定《三国演义》）
-curl "http://127.0.0.1:8000/chat?query=诸葛亮&book=三国演义"
+curl "http://127.0.0.1:8888/chat?query=诸葛亮&book=三国演义"
 
 # 结果：
 # - book_filter: "三国演义"
@@ -152,7 +152,7 @@ curl "http://127.0.0.1:8000/chat?query=诸葛亮&book=三国演义"
 #### 只用关键词（不指定书名）
 
 ```bash
-curl "http://127.0.0.1:8000/chat?query=宝玉"
+curl "http://127.0.0.1:8888/chat?query=宝玉"
 ```
 
 **流程**：
@@ -168,7 +168,7 @@ curl "http://127.0.0.1:8000/chat?query=宝玉"
 #### 使用标签（指定书名）
 
 ```bash
-curl "http://127.0.0.1:8000/chat?query=宝玉&book=红楼梦"
+curl "http://127.0.0.1:8888/chat?query=宝玉&book=红楼梦"
 ```
 
 **流程**：
@@ -186,7 +186,7 @@ curl "http://127.0.0.1:8000/chat?query=宝玉&book=红楼梦"
 #### 只用关键词（不指定书名）
 
 ```bash
-curl "http://127.0.0.1:8000/chat?query=诸葛亮"
+curl "http://127.0.0.1:8888/chat?query=诸葛亮"
 ```
 
 **流程**：
@@ -202,7 +202,7 @@ curl "http://127.0.0.1:8000/chat?query=诸葛亮"
 #### 使用标签（指定书名）
 
 ```bash
-curl "http://127.0.0.1:8000/chat?query=诸葛亮&book=三国演义"
+curl "http://127.0.0.1:8888/chat?query=诸葛亮&book=三国演义"
 ```
 
 **流程**：
@@ -221,7 +221,7 @@ curl "http://127.0.0.1:8000/chat?query=诸葛亮&book=三国演义"
 
 ```bash
 # 查询"诸葛亮"，限定《三国演义》
-curl "http://127.0.0.1:8000/chat?query=诸葛亮&book=三国演义"
+curl "http://127.0.0.1:8888/chat?query=诸葛亮&book=三国演义"
 ```
 
 **流程**：
@@ -246,7 +246,7 @@ curl "http://127.0.0.1:8000/chat?query=诸葛亮&book=三国演义"
 **方案**：只用关键词
 
 ```bash
-curl "http://127.0.0.1:8000/chat?query=诸葛亮"
+curl "http://127.0.0.1:8888/chat?query=诸葛亮"
 ```
 
 **结果**：
@@ -263,7 +263,7 @@ curl "http://127.0.0.1:8000/chat?query=诸葛亮"
 **方案**：使用标签
 
 ```bash
-curl "http://127.0.0.1:8000/chat?query=宝玉&book=红楼梦"
+curl "http://127.0.0.1:8888/chat?query=宝玉&book=红楼梦"
 ```
 
 **结果**：
@@ -281,10 +281,10 @@ curl "http://127.0.0.1:8000/chat?query=宝玉&book=红楼梦"
 
 ```bash
 # 《红楼梦》中的爱情
-curl "http://127.0.0.1:8000/chat?query=爱情&book=红楼梦"
+curl "http://127.0.0.1:8888/chat?query=爱情&book=红楼梦"
 
 # 《西游记》中的爱情
-curl "http://127.0.0.1:8000/chat?query=爱情&book=西游记"
+curl "http://127.0.0.1:8888/chat?query=爱情&book=西游记"
 ```
 
 **结果**：
@@ -300,7 +300,7 @@ curl "http://127.0.0.1:8000/chat?query=爱情&book=西游记"
 **方案**：不用关键词和标签
 
 ```bash
-curl "http://127.0.0.1:8000/chat?query=潘巧云"
+curl "http://127.0.0.1:8888/chat?query=潘巧云"
 ```
 
 **结果**：

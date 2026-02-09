@@ -1,6 +1,6 @@
 # AI Agent 知识库问答系统
 
-基于阿里云通义千问的本地知识库 RAG 系统。
+基于 LangChain + Chroma 的本地知识库 RAG 系统，支持阿里云 / Groq / Ollama 多种 LLM 提供商。
 
 ## 🚀 快速开始
 
@@ -70,10 +70,10 @@ python scripts/chat.py --no-rag
 ### 方式四：API 服务
 
 ```bash
-venv/bin/python3.13 -m uvicorn app.main:app --reload
+venv/bin/python3.13 -m uvicorn app.main:app --reload --port 8888
 ```
 
-访问：http://127.0.0.1:8000/chat?query=你的问题
+访问：http://127.0.0.1:8888/chat?query=你的问题
 
 ## 📊 数据来源
 
@@ -100,14 +100,14 @@ venv/bin/python3.13 -m uvicorn app.main:app --reload
 
 ### 基础配置
 
-确保 `.env` 文件中配置了 API Key：
+确保 `.env` 文件中配置了 LLM 提供商和本地 Embedding：
 
 **使用阿里云（默认）：**
 ```env
 MODEL_PROVIDER=aliyun
 DASHSCOPE_API_KEY=your_api_key_here
 LLM_MODEL=qwen-plus
-EMBEDDING_MODEL=text-embedding-v3
+LOCAL_EMBEDDING_MODEL=BAAI/bge-large-zh-v1.5
 ```
 
 **使用 Groq（更快、免费）：**
@@ -115,10 +115,7 @@ EMBEDDING_MODEL=text-embedding-v3
 MODEL_PROVIDER=groq
 GROQ_API_KEY=your_groq_api_key_here
 GROQ_LLM_MODEL=llama-3.3-70b-versatile
-
-# Embedding 仍需阿里云
-DASHSCOPE_API_KEY=your_api_key_here
-EMBEDDING_MODEL=text-embedding-v3
+LOCAL_EMBEDDING_MODEL=BAAI/bge-large-zh-v1.5
 ```
 
 **使用 Ollama（本地部署、完全免费）：** ⭐
@@ -143,8 +140,11 @@ LOCAL_EMBEDDING_MODEL=BAAI/bge-large-zh-v1.5
 
 ## 💰 费用
 
-- 文档导入：按文档大小计费（text-embedding-v3）
-- 每次提问：按 Token 计费（qwen-plus）
+- 文档导入：默认使用本地 Embedding（免费）
+- 每次提问：取决于 LLM 提供商
+  - 阿里云：按 Token 计费
+  - Groq：免费额度
+  - Ollama：本地免费
 
 查看费用：https://usercenter.console.aliyun.com/#/expense/overview
 
@@ -160,47 +160,21 @@ A: 删除 `vector_store/` 目录：`rm -rf vector_store/`
 A: 每次回答都会显示数据来源（本地知识库 vs 模型通用知识）
 
 **Q: 检索结果不准确怎么办？** ⚠️  
-A: 如果切换了 Embedding 类型（阿里云 ↔ 本地），必须重新导入文档！
+A: 如果切换或升级了本地 Embedding 模型，必须重新导入文档：
 ```bash
-# 快速修复
-./fix_accuracy.sh
-
-# 或手动修复
 rm -rf vector_store
 python scripts/ingest.py
 ```
-详见：[准确度问题修复](ACCURACY_FIX.md)
 
 ## 📚 更多文档
 
-- [快速使用指南](docs/QUICK_START.md) - 详细的使用说明
-- [向量检索原理](docs/VECTOR_SEARCH_EXPLAINED.md) - 通俗易懂的向量化和相似度计算说明 ⭐
-- [系统架构说明](docs/ARCHITECTURE.md) - 了解系统工作原理
-- [Ollama 本地部署](OLLAMA_SETUP.md) - 使用本地 Ollama 模型（完全免费）⭐
+- [API 文档](API_DOC.md) - 完整接口说明（含 SSE）
+- [Ollama 快速参考](OLLAMA_QUICK_REFERENCE.md) - 本地模型快速排查
+- [RAG 说明](docs/RAG_EXPLAINED.md) - 检索与生成工作流
 - [纯 LLM 模式](docs/NO_RAG_MODE.md) - 不使用知识库，完全免费
-- [Groq 配置指南](docs/GROQ_SETUP.md) - 使用 Groq 免费快速模型
-- [支持的文档格式](docs/FORMATS.md) - 查看所有支持的格式
-- [模型使用说明](docs/MODELS.md) - 了解使用的 AI 模型和费用
-- [Embedding 详解](docs/EMBEDDING_EXPLAINED.md) - 理解向量化和费用
 - [向量数据库详解](docs/VECTOR_STORE.md) - 了解 vector_store 的工作原理
-- [项目总结](docs/SUMMARY.md) - 功能概览和使用场景
-- [提供商对比](docs/PROVIDER_COMPARISON.md) - 阿里云 vs Groq vs Ollama
-
-### 🔧 故障排查
-
-- [准确度问题修复](ACCURACY_FIX.md) - 检索不准确的解决方案 ⭐
-- [准确度问题详解](docs/ACCURACY_ISSUES.md) - 深入了解原因和解决方法
-
-### ⚡ 性能优化
-
-- [关键词增强检索](docs/KEYWORD_ENHANCED_RETRIEVAL.md) - 智能优化检索策略 ⭐
-- [关键词优化说明](docs/KEYWORD_OPTIMIZATION.md) - 原始关键词功能说明
+- [标签与关键词对比](docs/TAGS_VS_KEYWORDS.md) - 检索策略说明
 - [Few-Shot 学习指南](docs/FEW_SHOT_GUIDE.md) - 提高回答质量和格式统一
-- [LLM 优化技巧](docs/LLM_OPTIMIZATION.md) - 各种优化策略
-
-### 📑 高级功能
-
-- [文档标签系统](docs/DOCUMENT_TAGS.md) - 按书名、作者、类别精准检索 ⭐
 
 ## 📄 许可证
 

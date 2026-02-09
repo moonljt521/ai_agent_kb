@@ -1,4 +1,6 @@
 import os
+from contextvars import ContextVar
+from dataclasses import dataclass, field
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
@@ -12,6 +14,17 @@ from app.core.hallucination_guard import HallucinationGuard, CitationEnforcer
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+@dataclass
+class RetrievalState:
+    """请求级检索状态，避免并发请求相互污染。"""
+    last_retrieved_docs: list = field(default_factory=list)
+    used_knowledge_base: bool = False
+    used_direct_retrieval: bool = False
+    used_few_shot: bool = False
+    keyword_matched: bool = False
+
 
 class AgentManager:
     def __init__(self, enable_few_shot=True, enable_direct_retrieval=False, enable_hybrid=False):
@@ -70,11 +83,9 @@ class AgentManager:
             self.hallucination_guard = None
             print("⚠️  反幻觉守卫未启用")
         
-        self.last_retrieved_docs = []
-        self.used_knowledge_base = False
-        self.used_direct_retrieval = False
-        self.used_few_shot = False
-        self.keyword_matched = False  # 新增：标记是否命中关键词
+        # 请求级状态（ContextVar），避免并发请求时状态串线
+        self._state_var = ContextVar("agent_retrieval_state", default=None)
+        self._reset_state()
         
         # 打印关键词统计
         stats = self.keyword_matcher.get_statistics()
@@ -90,6 +101,20 @@ class AgentManager:
             print(f"📝 已加载 {few_shot_stats['总示例数']} 个 Few-Shot 示例")
             print("💡 Few-Shot 将统一回答格式和风格")
 
+    def _reset_state(self, keyword_matched=False) -> RetrievalState:
+        """初始化当前请求的检索状态。"""
+        state = RetrievalState(keyword_matched=keyword_matched)
+        self._state_var.set(state)
+        return state
+
+    def _get_state(self) -> RetrievalState:
+        """获取当前请求的检索状态。"""
+        state = self._state_var.get()
+        if state is None:
+            state = RetrievalState()
+            self._state_var.set(state)
+        return state
+
     def create_agent(self):
         # 1. 创建检索器
         retriever = self.rag.get_retriever()
@@ -100,8 +125,9 @@ class AgentManager:
             """搜索本地知识库中的信息。对于任何问题，都应该先使用此工具搜索知识库，看是否有相关内容。知识库中可能包含书籍、文档、技术资料等各种内容。"""
             docs = retriever.invoke(query)
             # 记录检索到的文档
-            self.last_retrieved_docs = docs
-            self.used_knowledge_base = True
+            state = self._get_state()
+            state.last_retrieved_docs = docs
+            state.used_knowledge_base = True
             return "\n\n".join([d.page_content for d in docs])
 
         tools = [search_knowledge_base]
@@ -123,10 +149,7 @@ class AgentManager:
             book_filter: 书名过滤（如 "红楼梦"），只检索指定书籍
         """
         # 重置状态
-        self.last_retrieved_docs = []
-        self.used_knowledge_base = False
-        self.used_few_shot = False
-        self.keyword_matched = keyword_matched  # 记录是否命中关键词
+        state = self._reset_state(keyword_matched=keyword_matched)
         
         # 1. 检索相关文档
         # 如果命中关键词，增加检索数量以获得更全面的信息
@@ -142,19 +165,19 @@ class AgentManager:
             retriever = self.rag.get_retriever(k=k)
             docs = retriever.invoke(query)
         
-        self.last_retrieved_docs = docs
+        state.last_retrieved_docs = docs
         
         if keyword_matched:
             print(f"🎯 命中关键词，使用增强检索（k={k}）")
         
         # 2. 构建提示词
         if docs:
-            self.used_knowledge_base = True
+            state.used_knowledge_base = True
             context = "\n\n".join([doc.page_content for doc in docs])
             
             # 使用 Few-Shot（如果启用）
             if self.few_shot_manager:
-                self.used_few_shot = True
+                state.used_few_shot = True
                 prompt = self.few_shot_manager.build_few_shot_prompt(query, context)
             else:
                 prompt = f"""你是一个智能助手。请基于以下知识库内容回答用户的问题。
@@ -191,10 +214,7 @@ class AgentManager:
             生成器，逐个返回文本块
         """
         # 重置状态
-        self.last_retrieved_docs = []
-        self.used_knowledge_base = False
-        self.used_few_shot = False
-        self.keyword_matched = keyword_matched
+        state = self._reset_state(keyword_matched=keyword_matched)
         
         # 1. 检索相关文档
         k = 8 if keyword_matched else 5
@@ -206,18 +226,18 @@ class AgentManager:
             retriever = self.rag.get_retriever(k=k)
             docs = retriever.invoke(query)
         
-        self.last_retrieved_docs = docs
+        state.last_retrieved_docs = docs
         
         if keyword_matched:
             print(f"🎯 命中关键词，使用增强检索（k={k}）")
         
         # 2. 构建提示词
         if docs:
-            self.used_knowledge_base = True
+            state.used_knowledge_base = True
             context = "\n\n".join([doc.page_content for doc in docs])
             
             if self.few_shot_manager:
-                self.used_few_shot = True
+                state.used_few_shot = True
                 prompt = self.few_shot_manager.build_few_shot_prompt(query, context)
             else:
                 prompt = f"""你是一个智能助手。请基于以下知识库内容回答用户的问题。
@@ -255,10 +275,7 @@ class AgentManager:
             生成器，逐个返回文本块
         """
         # 重置状态
-        self.last_retrieved_docs = []
-        self.used_knowledge_base = False
-        self.used_few_shot = False
-        self.keyword_matched = keyword_matched
+        state = self._reset_state(keyword_matched=keyword_matched)
         
         # 1. 构建增强查询（用于检索）
         enhanced_query = self._build_context_query(history, query)
@@ -273,7 +290,7 @@ class AgentManager:
             retriever = self.rag.get_retriever(k=k)
             docs = retriever.invoke(enhanced_query)
         
-        self.last_retrieved_docs = docs
+        state.last_retrieved_docs = docs
         
         if keyword_matched:
             print(f"🎯 命中关键词，使用增强检索（k={k}）")
@@ -283,7 +300,7 @@ class AgentManager:
         
         # 3. 构建完整提示词（包含历史和检索结果）
         if docs:
-            self.used_knowledge_base = True
+            state.used_knowledge_base = True
             doc_context = "\n\n".join([doc.page_content for doc in docs])
             
             prompt = f"""你是一个智能助手。请基于对话历史和知识库内容回答用户的问题。
@@ -328,16 +345,20 @@ class AgentManager:
         has_pronoun = any(p in current_query for p in pronouns)
         
         if has_pronoun and len(history) >= 2:
-            # 获取最近一轮的用户问题
-            last_user_msg = None
-            for msg in reversed(history):
-                if msg.get('role') == 'user':
-                    last_user_msg = msg.get('content', '')
-                    break
-            
-            if last_user_msg:
-                # 简单拼接（更复杂的实现可以使用 NLP 工具）
-                return f"{last_user_msg} {current_query}"
+            # 获取最近一轮用户问题；若最后一条与当前问题相同，回退一轮
+            user_messages = [
+                (msg.get('content') or '').strip()
+                for msg in history
+                if msg.get('role') == 'user'
+            ]
+            if user_messages:
+                last_user_msg = user_messages[-1]
+                if last_user_msg == current_query and len(user_messages) >= 2:
+                    last_user_msg = user_messages[-2]
+                
+                if last_user_msg and last_user_msg != current_query:
+                    # 简单拼接（更复杂的实现可以使用 NLP 工具）
+                    return f"{last_user_msg} {current_query}"
         
         return current_query
     
@@ -390,14 +411,14 @@ class AgentManager:
         适用于命中关键词的简单查询
         """
         # 重置状态
-        self.last_retrieved_docs = []
-        self.used_knowledge_base = True
-        self.used_direct_retrieval = True
+        state = self._reset_state(keyword_matched=True)
+        state.used_knowledge_base = True
+        state.used_direct_retrieval = True
         
         # 检索相关文档
         retriever = self.rag.get_retriever()
         docs = retriever.invoke(query)
-        self.last_retrieved_docs = docs
+        state.last_retrieved_docs = docs
         
         if not docs:
             return "抱歉，在知识库中没有找到相关内容。"
@@ -430,7 +451,7 @@ class AgentManager:
                     return self.run_simple_rag(query, keyword_matched=True)
                 else:
                     # 阿里云 Agent 模式暂时保持原样
-                    return self.run_agent_mode(query)
+                    return self.run_agent_mode(query, keyword_matched=True)
             else:
                 print(f"🤖 {reason}")
         
@@ -439,14 +460,12 @@ class AgentManager:
         if self.provider in ["groq", "ollama"]:
             return self.run_simple_rag(query, keyword_matched=False)
         else:
-            return self.run_agent_mode(query)
+            return self.run_agent_mode(query, keyword_matched=False)
     
-    def run_agent_mode(self, query: str):
+    def run_agent_mode(self, query: str, keyword_matched=False):
         """阿里云 Agent 模式"""
         # 重置状态
-        self.last_retrieved_docs = []
-        self.used_knowledge_base = False
-        self.used_direct_retrieval = False
+        self._reset_state(keyword_matched=keyword_matched)
         
         graph = self.create_agent()
         # 调用图，输入消息列表
@@ -460,18 +479,19 @@ class AgentManager:
     
     def get_last_retrieval_info(self):
         """获取最后一次检索的详细信息"""
+        state = self._get_state()
         return {
-            "used_knowledge_base": self.used_knowledge_base,
-            "used_direct_retrieval": self.used_direct_retrieval,
-            "used_few_shot": self.used_few_shot,
-            "keyword_matched": self.keyword_matched,  # 新增：是否命中关键词
-            "retrieved_docs_count": len(self.last_retrieved_docs),
+            "used_knowledge_base": state.used_knowledge_base,
+            "used_direct_retrieval": state.used_direct_retrieval,
+            "used_few_shot": state.used_few_shot,
+            "keyword_matched": state.keyword_matched,  # 新增：是否命中关键词
+            "retrieved_docs_count": len(state.last_retrieved_docs),
             "sources": [
                 {
                     "source": doc.metadata.get("source", "未知"),
                     "page": doc.metadata.get("page", "未知"),
                     "preview": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
                 }
-                for doc in self.last_retrieved_docs
+                for doc in state.last_retrieved_docs
             ]
         }

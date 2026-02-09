@@ -1834,13 +1834,11 @@
             
             // 判断是否有上下文
             const hasContext = conversationHistory.length > 0;
+            const requestHistory = [...conversationHistory];
 
             // 添加问题气泡并记录开始时间
             const questionBubble = addQuestionBubble(query, selectedBook, hasContext);
             const startTime = Date.now();
-            
-            // 添加到历史
-            addToHistory('user', query, selectedBook);
 
             // 禁用输入
             submitBtn.disabled = true;
@@ -1850,13 +1848,14 @@
             // 创建答案气泡
             const answerBubble = createAnswerBubble();
             let fullText = '';
+            let historyCommitted = false;
 
             try {
                 // 构建请求数据
                 const requestData = {
                     query: query,
                     book: selectedBook || null,
-                    history: conversationHistory
+                    history: requestHistory
                 };
 
                 const response = await fetch('/chat', {
@@ -1891,8 +1890,12 @@
                                     // 元数据（传递开始时间）
                                     finalizeAnswerBubble(answerBubble, data, startTime);
                                     
-                                    // 添加助手回复到历史
-                                    addToHistory('assistant', fullText);
+                                    // 仅在回复成功后写入本轮对话，避免当前问题污染检索历史
+                                    if (!historyCommitted) {
+                                        addToHistory('user', query, selectedBook);
+                                        addToHistory('assistant', fullText);
+                                        historyCommitted = true;
+                                    }
                                 } else if (data.type === 'error') {
                                     // 错误
                                     answerBubble.remove();

@@ -104,6 +104,10 @@ class DocumentTagger:
     def get_books(self) -> list:
         """获取所有书籍列表"""
         return list(self.doc_tags.keys())
+
+    def get_book_tags_map(self) -> dict:
+        """获取按书籍组织的标签映射"""
+        return self.doc_tags.copy()
     
     def get_statistics(self) -> dict:
         """获取标签统计信息"""

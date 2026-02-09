@@ -166,6 +166,58 @@ class RAGManager:
     def get_books_list(self):
         """获取知识库中的所有书籍"""
         return self.tagger.get_books()
+
+    def get_books_statistics(self):
+        """
+        获取按书籍聚合的统计信息
+
+        返回:
+            {
+                "红楼梦": {"文档数": 123, "标签": [...], "作者": "...", "朝代": "...", "体裁": "..."},
+                ...
+            }
+        """
+        # 先用标签配置初始化，保证所有书籍都有条目
+        stats = {}
+        for book, tags in self.tagger.get_book_tags_map().items():
+            category = tags.get("category", [])
+            if isinstance(category, str):
+                category = [category]
+            stats[book] = {
+                "文档数": 0,
+                "标签": category,
+                "作者": tags.get("author", "未知"),
+                "朝代": tags.get("dynasty", "未知"),
+                "体裁": tags.get("genre", "未知"),
+            }
+        
+        # 从向量库元数据统计各书籍文档数（实际为切片数）
+        try:
+            if not self.vector_store:
+                self.vector_store = Chroma(
+                    persist_directory=self.persist_dir,
+                    embedding_function=self.embeddings
+                )
+            
+            result = self.vector_store.get(include=["metadatas"])
+            metadatas = result.get("metadatas", []) if isinstance(result, dict) else []
+            
+            for metadata in metadatas:
+                book = metadata.get("book", "未知")
+                if book not in stats:
+                    stats[book] = {
+                        "文档数": 0,
+                        "标签": [],
+                        "作者": metadata.get("author", "未知"),
+                        "朝代": metadata.get("dynasty", "未知"),
+                        "体裁": metadata.get("genre", "未知"),
+                    }
+                stats[book]["文档数"] += 1
+        except Exception:
+            # 向量库未初始化时，仍返回基于标签配置的基础统计
+            pass
+        
+        return stats
     
     def get_tag_statistics(self):
         """获取标签统计信息"""
