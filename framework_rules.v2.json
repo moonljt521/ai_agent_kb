@@ -1,0 +1,81 @@
+{
+  "version": 2,
+  "reactNative": {
+    "strictNativeLibPrefixes": [
+      "libreactnative",
+      "libreact_",
+      "libreactperflogger"
+    ],
+    "relatedNativeLibPrefixes": [
+      "libhermes",
+      "libjsengine",
+      "libjsi",
+      "libjsinspector",
+      "libfabricjni",
+      "libturbomodulejsijni",
+      "libyoga",
+      "libfolly"
+    ],
+    "relatedNativeLibExactNames": [
+      "libjsc.so",
+      "libjscexecutor.so"
+    ],
+    "jsEngineLibPrefixes": [
+      "libhermes",
+      "libjsengine"
+    ],
+    "jsEngineLibExactNames": [
+      "libjsc.so",
+      "libjscexecutor.so"
+    ],
+    "metadataPathPrefixes": [
+      "assets/",
+      "meta-inf/"
+    ],
+    "metadataFileSuffixes": [
+      ".json",
+      ".js",
+      ".txt",
+      ".properties",
+      ".bundle",
+      "manifest.mf"
+    ],
+    "metadataKeywords": [
+      "react",
+      "rn",
+      "version",
+      "package"
+    ]
+  },
+  "unity": {
+    "dataVersionPathSuffixes": [
+      "assets/bin/data/globalgamemanagers",
+      "assets/bin/data/data.unity3d",
+      "assets/bin/data/globalgamemanagers.assets",
+      "assets/bin/data/resources/unity default resources"
+    ]
+  },
+  "kmp": {
+    "projectMetadataKeywords": [
+      "kotlin-project-structure-metadata.json"
+    ],
+    "binaryMetadataSuffixes": [
+      ".knm",
+      ".klib"
+    ],
+    "namedModuleKeywords": [
+      "kmp",
+      "multiplatform",
+      "commonmain",
+      "androidmain",
+      "composeapp"
+    ],
+    "composeResourcePathPrefix": "assets/composeresources/",
+    "composeResourcePathKeyword": ".generated.resources/",
+    "versionHintKeywords": [
+      "kotlin",
+      "multiplatform",
+      "kmp"
+    ]
+  }
+}
